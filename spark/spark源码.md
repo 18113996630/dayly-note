@@ -2,7 +2,16 @@
 
 # 1. 下载spark源码，导入idea并进行编译
 
-​		
+## 1.下载与服务器版本相同的spark源码
+
+**地址：**` https://github.com/apache/spark/releases `
+
+## 2.使用maven编译
+
+1. `export MAVEN_OPTS="-Xmx4g -XX:ReservedCodeCacheSize=1024m"`
+2. `build/mvn -T 4 -DskipTests clean package`
+
+参考` http://spark.apache.org/docs/latest/building-spark.html `
 
 错误1：
 
@@ -25,7 +34,7 @@ iled: java.io.IOException: Cannot run program "bash" (in directory "E:\workspace
 
 ## 1. 调试start-master.sh
 
-#### 1. 执行 sh -x ./start-master.sh
+#### 1. 执行 sh -x start-master.sh
 
 ```
 + '[' -z /usr/local/spark ']'
@@ -65,21 +74,28 @@ iled: java.io.IOException: Cannot run program "bash" (in directory "E:\workspace
 ++ '[' -d /usr/local/spark/assembly/target/scala-2.11 ']'
 ++ export SPARK_SCALA_VERSION=2.12
 ++ SPARK_SCALA_VERSION=2.12
+
+
 + '[' '' = '' ']'
 + SPARK_MASTER_PORT=7077
+
+
 + '[' '' = '' ']'
 + case `uname` in
 ++ uname
 ++ hostname -f
 + SPARK_MASTER_HOST=s101
+
+
 + '[' '' = '' ']'
 + SPARK_MASTER_WEBUI_PORT=8080
 + /usr/local/spark/sbin/spark-daemon.sh start org.apache.spark.deploy.master.Master 1 --host s101 --port 7077 --webui-port 8080
+starting org.apache.spark.deploy.master.Master, logging to /usr/local/spark/logs/spark-hadoop-org.apache.spark.deploy.master.Master-1-s101.out
 ```
 
 #### **2. start-master.sh再调用spark-daemon.sh**
 
-> /usr/local/spark/sbin/spark-daemon.sh start org.apache.spark.deploy.master.Master 1 --host s101 --port 7077 --webui-port 8080
+> sh -x /usr/local/spark/sbin/spark-daemon.sh start org.apache.spark.deploy.master.Master 1 --host s101 --port 7077 --webui-port 8080
 
 ------
 
@@ -226,7 +242,7 @@ starting org.apache.spark.deploy.master.Master, logging to /usr/local/spark/logs
 
 #### 4. spark-daemon.sh再调用spark-class
 
-> /usr/local/spark/bin/spark-class org.apache.spark.deploy.master.Master --host s101 --port 7077 --webui-port 8080
+> sh -x /usr/local/spark/bin/spark-class org.apache.spark.deploy.master.Master --host s101 --port 7077 --webui-port 8080
 
 
 
@@ -362,7 +378,7 @@ starting org.apache.spark.deploy.master.Master, logging to /usr/local/spark/logs
 
 1. 设置处理未被捕获的异常处理器
 
-2. 解析参数，并未sparkConf设置默认参数(默认的参数来自于$SPARK_HOME/conf/spark-defaults.con文件)
+2. 解析参数，并为sparkConf设置默认参数(默认的参数来自于$SPARK_HOME/conf/spark-defaults.con文件)
 
 3. 向message-dispacture注册Master(RpcEndpoint的一个实例)
 
@@ -554,6 +570,8 @@ starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spark/logs
 
 #### 4. start-slave.sh调用spark-daemon.sh
 
+>  /usr/local/spark/sbin/spark-daemon.sh start org.apache.spark.deploy.worker.Worker 1 --webui-port 8081 spark://s101:7077
+
 #### 5. 执行spark-daemon.sh
 
 > sh -x /usr/local/spark/sbin/spark-daemon.sh start org.apache.spark.deploy.worker.Worker 1 --webui-port 8081 spark://s101:7077
@@ -662,6 +680,9 @@ starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spark/logs
 + echo 'starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spark/logs/spark-hadoop-org.apache.spark.deploy.worker.Worker-1-s101.out'
 starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spark/logs/spark-hadoop-org.apache.spark.deploy.worker.Worker-1-s101.out
 + case "$mode" in
+
+
+
 + execute_command nice -n 0 /usr/local/spark/bin/spark-class org.apache.spark.deploy.worker.Worker --webui-port 8081 spark://s101:7077
 + '[' -z ']'
 + newpid=15002
@@ -681,6 +702,8 @@ starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spark/logs
 ```
 
 #### 6. spark-daemon.sh调用spark-class
+
+> /usr/local/spark/bin/spark-class org.apache.spark.deploy.worker.Worker --webui-port 8081 spark://s101:7077
 
 #### 7. 执行spark-class
 
@@ -852,3 +875,37 @@ starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spark/logs
 
 ## 3. 调试spark-submit.sh
 
+## 4. 远程调试/调试源码
+
+1. spark端配置
+
+   ```
+   #调试Master，在master节点的spark-env.sh中添加SPARK_MASTER_OPTS变量
+   export SPARK_MASTER_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10000"
+   #启动Master，程序会卡住，等待调试端进行连接
+   sbin/start-master.sh
+   #本地启动remote
+   
+   #调试Worker，在worker节点的spark-env.sh中添加SPARK_WORKER_OPTS变量
+   export SPARK_WORKER_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10001"
+   #启动Worker
+   sbin/start-slave.sh 1 spark://hadoop1:7077
+   
+   #调试spark-submit + app
+   bin/spark-submit --class cn.itcast.spark.WordCount --master spark://hadoop1:7077 --driver-java-options "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10002" /root/wc.jar hdfs://mycluster/wordcount/input/2.txt hdfs://mycluster/out2 
+   
+   #调试spark-submit + app + executor
+   bin/spark-submit --class cn.itcast.spark.WordCount --master spark://hadoop1:7077 --conf "spark.executor.extraJavaOptions=-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10003" --driver-java-options "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10002" /root/wc.jar hdfs://mycluster/wordcount/input/2.txt hdfs://mycluster/out2 
+   ```
+
+2. idea配置
+
+   > 新增一个remote配置
+
+3. 执行提交脚本
+
+   ```
+   bin/spark-submit --class cn.itcast.spark.WordCount --master spark://hadoop1:7077 --driver-java-options "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10002" /root/wc.jar hdfs://mycluster/wordcount/input/2.txt hdfs://mycluster/out2 
+   ```
+
+   

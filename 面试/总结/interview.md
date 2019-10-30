@@ -186,6 +186,64 @@ G1收集器是一个面向服务器配置的垃圾收集器
 2. 分代收集，保留了青年代和老年代
 3. 采用了标记-整理回收算法，不会产生内存碎片，有利于大对象的分配
 
+### 6. tomcat调优
+
+1. 出现如下错误：
+
+   ```
+   #
+   # There is insufficient memory for the Java Runtime Environment to continue.
+   # Native memory allocation (malloc) failed to allocate 1050800 bytes for Chunk::new
+   # Possible reasons:
+   #   The system is out of physical RAM or swap space
+   #   In 32 bit mode, the process size limit was hit
+   # Possible solutions:
+   #   Reduce memory load on the system
+   #   Increase physical memory or swap space
+   #   Check if swap backing store is full
+   #   Use 64 bit Java on a 64 bit OS
+   #   Decrease Java heap size (-Xmx/-Xms)
+   #   Decrease number of Java threads
+   #   Decrease Java thread stack sizes (-Xss)
+   #   Set larger code cache with -XX:ReservedCodeCacheSize=
+   # This output file may be truncated or incomplete.
+   #
+   #  Out of Memory Error (allocation.cpp:390), pid=10720, tid=0x0000000000000a50
+   #
+   # JRE version: Java(TM) SE Runtime Environment (8.0_172-b11) (build 1.8.0_172-b11)
+   # Java VM: Java HotSpot(TM) 64-Bit Server VM (25.172-b11 mixed mode windows-amd64 compressed oops)
+   # Core dump written. Default location: D:\aitt\apache-tomcat-9.0.5\bin\hs_err_pid10720.mdmp
+   #
+   ```
+
+   修改catalina.bat文件
+
+   ```
+   在echo Using CATALINA_BASE:   "%CATALINA_BASE%"的上面一行加下面代码：
+   
+   set JAVA_OPTS=-Xms1024m -Xmx4096m -XX:PermSize=128m -XX:MaxPermSize=256m
+   
+   加入后位置如下：
+   
+   rem ----- Execute The Requested Command ---------------------------------------
+   
+   set JAVA_OPTS=-Xms1024m -Xmx4096m -XX:PermSize=128m -XX:MaxPermSize=256m
+   
+   echo Using CATALINA_BASE:   "%CATALINA_BASE%"
+   参数说明：
+   -Xms1024m-Xms：初始Heap大小，使用的最小内存,cpu性能高时此值应设的大一些
+   
+   -Xms1024m-Xmx：java heap最大值，使用的最大内存
+   
+   上面两个值是分配JVM的最小和最大内存，取决于硬件物理内存的大小，建议均设为物理内存的一半。
+   
+   -XX:PermSize:设定内存的永久保存区域
+   
+   -XX:MaxPermSize:设定最大内存的永久保存区域
+   ```
+
+   
+
 ## spring
 
 1. **什么是IOC、DI**

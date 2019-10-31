@@ -1,50 +1,5 @@
 
 
-# 1. 下载spark源码，导入idea并进行编译
-
-## 环境搭建
- - spark版本：**2.3.3**
- - jdk版本：**1.8**
- - maven版本：**3.3.9**
- - 开发工具：**idea**
- - scala版本：**2.11.8**
-
-> 视频地址：https://www.bilibili.com/video/av72037856
-> 欢迎点赞
-
-### 1. 下载源码
-下载与服务器上的spark版本相同的源码，地址：`https://github.com/apache/spark`
-![github地址](./picture/1.1.github地址.png)
-
-### 2. 解压后使用maven进行预编译
-> 参考spark官网说明：http://spark.apache.org/docs/2.3.3/building-spark.html
-#### 1. 设置参与编译时maven的内存资源
-根据自己的电脑设置一下内存
-> export MAVEN_OPTS="-Xmx4g -XX:ReservedCodeCacheSize=1024m"
-#### 2. 使用gitbash进行预编译
-一定要使用**gitbash**进行预编译
-
-如不使用gitbash进行编译，可能会出现如下错误：
-
-```
-Failed to execute goal org.apache.maven.plugins:maven-antrun-plugin:1.8:run (default) on project spark-core_2.11: An Ant BuildException has occured: Execute fa
-iled: java.io.IOException: Cannot run program "bash" (in directory "E:\workspace\source_code\spark-2.3.4\core"): CreateProcess error=2, 系统找不到指定的文件。
-[ERROR] around Ant part ...<exec executable="bash">... @ 4:27 in E:\workspace\source_code\spark-2.3.4\core\target\antrun\build-main.xml
-```
-
--T指**参与编译的线程数量**
-
-> ./build/mvn -T 6 -DskipTests clean package
-
-根据电脑配置，编译的时间长短不同，反正时间肯定不会短是真的
-![编译成功](./picture/1.2.maven编译成功.png)
-
-### 3. 使用IDEA导入源码
-**open**  -> **选中源码根目录的pox.xml文件**-> **选择open as project进行导入**
-
-### 4. 刷新maven
-![在这里插入图片描述](./picture/1.3.刷新maven.png)
-到这里源码就已经导入成功了
 
 
 
@@ -60,6 +15,8 @@ iled: java.io.IOException: Cannot run program "bash" (in directory "E:\workspace
 4. **Master**
 
 #### 1. start-master.sh脚本内容
+
+> start-master.sh 脚本的功能是启动master节点
 
 ```shell
 # 判断是否配置了SPARK_HOME，如果没有设置则先通过$0获取当前脚本的文件名
@@ -963,7 +920,7 @@ def registerRpcEndpoint(name: String, endpoint: RpcEndpoint): NettyRpcEndpointRe
       
       6. 调用**schedule()**方法，该方法会在每次有新的application加入或者可用的资源刷新的时候调用，主要作用是调整可用的资源
 
-### 2. 调试start-slaves.sh
+## 2.2 start-slaves.sh脚本分析
 
 **脚本调用流程：**
 
@@ -1581,7 +1538,77 @@ def startRpcEnvAndEndpoint(
 
 
 
-## 3. 调试spark-submit.sh
+## 2.3 借助集群环境进行远程调试
+
+### 2.3.1 调试master
+
+#### 1. 配置
+
+1. **spark-env.sh**
+
+   ```shell
+   在末尾增加如下配置：
+   export SPARK_MASTER_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10000"
+   ```
+
+   **10000**端口为调试master的端口，在第二步中需要在idea中进行配置，注意端口不要冲突
+
+2. **idea配置**
+
+   ![](D:\workspace\github\dayly-note\spark\picture\2.3.1.1.idea配置.png)
+
+   ![](D:\workspace\github\dayly-note\spark\picture\2.3.1.2.idea配置.png)
+
+
+
+​		![](D:\workspace\github\dayly-note\spark\picture\2.3.1.3.idea配置.png)
+
+![](D:\workspace\github\dayly-note\spark\picture\2.3.1.4.idea配置.png)
+
+#### 2. 调试步骤
+
+1. **启动master**
+
+   > $SPARK_HOME/sbin/start-master.sh
+
+2. **在Master中打上断点，使用debug模式启动在idea中配置的remote application**
+
+   ![](D:\workspace\github\dayly-note\spark\picture\2.3.1.5.idea配置.png)
+
+3. **启动之后便会看到程序在断点位置停住了**
+
+   ![](D:\workspace\github\dayly-note\spark\picture\2.3.1.6.idea配置.png)
+
+### 2.3.2 调试worker
+
+#### 1. 配置
+
+1. **spark-env.sh**
+
+   ```shell
+   在末尾增加如下配置：
+   export SPARK_WORKER_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10001"
+   ```
+
+   **10001**端口为调试worker的端口，在第二步中需要在idea中进行配置，注意端口不要冲突
+
+2. **idea配置**
+
+   > 配置方法与master中配置相同，只需要把监听端口改为10001、将application的名字换一个即可
+
+#### 2. 调试步骤
+
+ 1. **启动worker**
+
+    > $SPARK_HOME/sbin/start-slaves.sh
+
+ 2. **在Worker中打上断点，使用debug模式启动在idea中配置的remote application**
+
+
+
+
+
+## 3. spark-submit.sh脚本分析
 
 
 

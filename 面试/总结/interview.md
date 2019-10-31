@@ -247,7 +247,9 @@ G1收集器是一个面向服务器配置的垃圾收集器
 ## spring
 
 1. **什么是IOC、DI**
-IOC全称为
+  IOC全称为：inversion of control，即控制反转，控制反转是对于程序中对象的创建来说的，传统对象的创建方法是直接在代码中进行new，由代码来控制创建对象的逻辑；而使用spring框架，则是让程序在运行的时候根据不同的情况来创建对象，由spring来管理对象的声明周期。
+
+  DI全称为：Injection inversion，依赖注入，di是ioc的实现过程，di可以根据对象的字段、getset、构造器来进行对象的创建。
 
 ## Springcloud
 

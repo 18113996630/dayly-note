@@ -52,9 +52,16 @@ iled: java.io.IOException: Cannot run program "bash" (in directory "E:\workspace
 
 ## 2.1 start-master.sh脚本分析
 
+**脚本调用流程：**
+
+1. **start-master.sh**
+2. **spark-daemon.sh**
+3. **spark-class**
+4. **Master**
+
 #### 1. start-master.sh脚本内容
 
-```
+```shell
 # 判断是否配置了SPARK_HOME，如果没有设置则先通过$0获取当前脚本的文件名
 # 再通过dirname获取sbin目录，再cd回上级目录，pwd获取绝对路径，以此设置SPARK_HOME
 if [ -z "${SPARK_HOME}" ]; then
@@ -118,9 +125,9 @@ fi
   $ORIGINAL_ARGS
 ```
 
-#### 2. 执行 sh -x start-master.sh
+##### 1.1. 执行 sh -x start-master.sh
 
-```
+```shell
 # 判断是否配置了SPARK_HOME，如果没有设置则先通过$0获取当前脚本的文件名
 # 再通过dirname获取sbin目录，再cd回上级目录，pwd获取绝对路径，以此设置SPARK_HOME
 + '[' -z /usr/local/spark ']'
@@ -196,15 +203,15 @@ fi
 starting org.apache.spark.deploy.master.Master, logging to /usr/local/spark/logs/spark-hadoop-org.apache.spark.deploy.master.Master-1-s101.out
 ```
 
-#### **3. start-master.sh调用spark-daemon.sh**
+#### **2. start-master.sh调用spark-daemon.sh**
 
 > sh -x /usr/local/spark/sbin/spark-daemon.sh start org.apache.spark.deploy.master.Master 1 --host s101 --port 7077 --webui-port 8080
 
 ------
 
-#### 4. spark-daemon.sh脚本内容
+##### 2.1 spark-daemon.sh脚本内容
 
-```
+```shell
 usage="Usage: spark-daemon.sh [--config <conf-dir>] (start|stop|submit|status) <spark-command> <spark-instance-number> <args...>"
 
 # 如果没有提供参数，则打印usage使用说明并中断脚本
@@ -433,11 +440,11 @@ case $option in
 esac
 ```
 
-#### 5. debug spark-daemon.sh脚本
+##### 2.2 debug spark-daemon.sh脚本
 
 > sh -x /usr/local/spark/sbin/spark-daemon.sh start org.apache.spark.deploy.master.Master 1 --host s101 --port 7077 --webui-port 8080
 
-```
+```shell
 + usage='Usage: spark-daemon.sh [--config <conf-dir>] (start|stop|submit|status) <spark-command> <spark-instance-number> <args...>'
 
 # 如果没有提供参数，则打印usage使用说明并中断脚本
@@ -602,13 +609,13 @@ starting org.apache.spark.deploy.master.Master, logging to /usr/local/spark/logs
 + [[ ! java =~ java ]]
 ```
 
-#### 5. spark-daemon.sh调用spark-class
+#### 3. spark-daemon.sh调用spark-class
 
 > sh -x /usr/local/spark/bin/spark-class org.apache.spark.deploy.master.Master --host s101 --port 7077 --webui-port 8080
 
-#### 6. spark-class内容
+##### 3.1 spark-class内容
 
-```
+```shell
 # 判断是否配置了SPARK_HOME，如果没有则手动设置
 if [ -z "${SPARK_HOME}" ]; then
   source "$(dirname "$0")"/find-spark-home
@@ -692,11 +699,11 @@ CMD=("${CMD[@]:0:$LAST}")
 exec "${CMD[@]}"
 ```
 
-#### 7. debug spark-class脚本
+##### 3.2 debug spark-class脚本
 
 > sh -x /usr/local/spark/bin/spark-class org.apache.spark.deploy.master.Master --host s101 --port 7077 --webui-port 8080
 
-```
+```shell
 # 判断是否配置了SPARK_HOME，如果没有则手动设置
 + '[' -z /usr/local/spark ']'
 
@@ -827,13 +834,13 @@ exec "${CMD[@]}"
 2019-10-19 19:32:26 INFO  Master:54 - I have been elected leader! New state: ALIVE
 ```
 
-#### 8. 执行org.apache.spark.deploy.master.Master中的内容
+#### 4. 执行org.apache.spark.deploy.master.Master中的main方法
 
 ```
 /usr/local/jdk/bin/java -cp '/usr/local/spark/conf/:/usr/local/spark/jars/*:/usr/local/spark/hadoop/etc/hadoop' -Xmx1g org.apache.spark.deploy.master.Master --host s101 --port 7077 --webui-port 8080
 ```
 
-#### 9. Master解析
+#### 5. Master解析
 
 ##### 1. Master执行内容(main方法)
 
@@ -862,7 +869,7 @@ def main(argStrings: Array[String]) {
 
 ```scala
 def startRpcEnvAndEndpoint(host: String, port: Int, webUiPort: Int, conf: SparkConf): (RpcEnv, Int, Option[Int]) = {
-    // 创建一个**SecurityManager**、**RpcEnv**，为创建RpcEndPoint做准备
+    // 创建一个SecurityManager、RpcEnv，为创建RpcEndPoint做准备
 	val securityMgr = new SecurityManager(conf)
 	val rpcEnv = RpcEnv.create(SYSTEM_NAME, host, port, conf, securityMgr)
     // 调用org.apache.spark.rpc.netty.NettyRpcEnv#setupEndpoint方法进行NettyRpcEndpointRef的创建
@@ -952,18 +959,69 @@ def registerRpcEndpoint(name: String, endpoint: RpcEndpoint): NettyRpcEndpointRe
 
          > RegisteredWorker(self, masterWebUiUrl, masterAddress)
    
+         
+      
       6. 调用**schedule()**方法，该方法会在每次有新的application加入或者可用的资源刷新的时候调用，主要作用是调整可用的资源
 
 ### 2. 调试start-slaves.sh
 
-#### 1. 执行start-slaves.sh文件
+**脚本调用流程：**
+
+1. **start-slaves.sh**
+2. **start-slave.sh**
+3. **spark-daemon.sh**
+4. **spark-class**
+5. **Worker**
+
+#### 1. start-slaves.sh脚本内容
+
+```shell
+# 判断是否配置了SPARK_HOME，如果没有则手动设置
+if [ -z "${SPARK_HOME}" ]; then
+  export SPARK_HOME="$(cd "`dirname "$0"`"/..; pwd)"
+fi
+
+# 通过.加上文件名临时执行spark-config.sh脚本
+## 设置SPARK_HOME、SPARK_CONF_DIR以及python的一些环境变量
+. "${SPARK_HOME}/sbin/spark-config.sh"
+
+# 通过.加上文件名临时执行load-spark-env.sh脚本
+## 设置SPARK_HOME、SPARK_SCALA_VERSION环境变量
+. "${SPARK_HOME}/bin/load-spark-env.sh"
+
+# 获取master节点的端口
+if [ "$SPARK_MASTER_PORT" = "" ]; then
+  SPARK_MASTER_PORT=7077
+fi
+
+# 获取master节点的主机名
+if [ "$SPARK_MASTER_HOST" = "" ]; then
+  case `uname` in
+      (SunOS)
+	  SPARK_MASTER_HOST="`/usr/sbin/check-hostname | awk '{print $NF}'`"
+	  ;;
+      (*)
+	  SPARK_MASTER_HOST="`hostname -f`"
+	  ;;
+  esac
+fi
+
+# 调用start-slave.sh脚本对worker节点进行启动
+"${SPARK_HOME}/sbin/slaves.sh" cd "${SPARK_HOME}" \; "${SPARK_HOME}/sbin/start-slave.sh" "spark://$SPARK_MASTER_HOST:$SPARK_MASTER_PORT"
+```
+
+
+
+##### 1.1 使用debug模式执行start-slaves.sh文件
 
 > sh -x start-slaves.sh
 
-```
+```shell
+# 判断是否配置了SPARK_HOME，如果没有则手动设置
 + '[' -z /usr/local/spark ']'
 
-
+# 通过.加上文件名临时执行spark-config.sh脚本
+## 设置SPARK_HOME、SPARK_CONF_DIR以及python的一些环境变量
 + . /usr/local/spark/sbin/spark-config.sh
 ++ '[' -z /usr/local/spark ']'
 ++ export SPARK_CONF_DIR=/usr/local/spark/conf
@@ -976,7 +1034,8 @@ def registerRpcEndpoint(name: String, endpoint: RpcEndpoint): NettyRpcEndpointRe
 ++ export PYSPARK_PYTHONPATH_SET=1
 ++ PYSPARK_PYTHONPATH_SET=1
 
-
+# 通过.加上文件名临时执行load-spark-env.sh脚本
+## 设置SPARK_HOME、SPARK_SCALA_VERSION环境变量
 + . /usr/local/spark/bin/load-spark-env.sh
 ++ '[' -z /usr/local/spark ']'
 ++ '[' -z '' ']'
@@ -999,11 +1058,11 @@ def registerRpcEndpoint(name: String, endpoint: RpcEndpoint): NettyRpcEndpointRe
 ++ export SPARK_SCALA_VERSION=2.12
 ++ SPARK_SCALA_VERSION=2.12
 
-
+# 获取master节点的端口
 + '[' '' = '' ']'
 + SPARK_MASTER_PORT=7077
 
-
+# 获取master节点的主机名
 + '[' '' = '' ']'
 + case `uname` in
 ++ uname
@@ -1013,7 +1072,7 @@ def registerRpcEndpoint(name: String, endpoint: RpcEndpoint): NettyRpcEndpointRe
 
 + /usr/local/spark/sbin/slaves.sh cd /usr/local/spark ';' 
 
-# 调用spark-slave.sh文件
+# 调用start-slave.sh脚本对worker节点进行启动
 /usr/local/spark/sbin/start-slave.sh spark://s101:7077
 
 
@@ -1024,20 +1083,93 @@ s101: starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spar
 
 > /usr/local/spark/sbin/start-slave.sh spark://s101:7077
 
-#### 3. 执行start-slave.sh
+##### 2.2 start-slave.sh脚本内容
+
+```shell
+# 判断是否配置了SPARK_HOME，如果没有则手动设置
+if [ -z "${SPARK_HOME}" ]; then
+  export SPARK_HOME="$(cd "`dirname "$0"`"/..; pwd)"
+fi
+
+# 定义CLASS变量，因为该脚本是用于启动worker，所以相关的类为Worker
+CLASS="org.apache.spark.deploy.worker.Worker"
+
+# 判断参数个数或者是是否包含--help...
+if [[ $# -lt 1 ]] || [[ "$@" = *--help ]] || [[ "$@" = *-h ]]; then
+  echo "Usage: ./sbin/start-slave.sh [options] <master>"
+  pattern="Usage:"
+  pattern+="\|Using Spark's default log4j profile:"
+  pattern+="\|Registered signal handlers for"
+
+  "${SPARK_HOME}"/bin/spark-class $CLASS --help 2>&1 | grep -v "$pattern" 1>&2
+  exit 1
+fi
+
+# 通过.加上文件名临时执行spark-config.sh脚本
+## 设置SPARK_HOME、SPARK_CONF_DIR以及python的一些环境变量
+. "${SPARK_HOME}/sbin/spark-config.sh"
+
+# 通过.加上文件名临时执行load-spark-env.sh脚本
+## 设置SPARK_HOME、SPARK_SCALA_VERSION环境变量
+. "${SPARK_HOME}/bin/load-spark-env.sh"
+
+# 第一个参数应该是master参数，需要将该参数进行临时存储，因为可能会在master参数与其他参数之间加入其他的参数
+MASTER=$1
+shift
+
+# 设置worker的ui端口，默认为8081
+if [ "$SPARK_WORKER_WEBUI_PORT" = "" ]; then
+  SPARK_WORKER_WEBUI_PORT=8081
+fi
+
+# 在该台机器上启动合适数量的worker
+function start_instance {
+  WORKER_NUM=$1
+  shift
+
+  if [ "$SPARK_WORKER_PORT" = "" ]; then
+    PORT_FLAG=
+    PORT_NUM=
+  else
+    PORT_FLAG="--port"
+    PORT_NUM=$(( $SPARK_WORKER_PORT + $WORKER_NUM - 1 ))
+  fi
+  WEBUI_PORT=$(( $SPARK_WORKER_WEBUI_PORT + $WORKER_NUM - 1 ))
+  # 调用spark-daemon.sh脚本
+  "${SPARK_HOME}/sbin"/spark-daemon.sh start $CLASS $WORKER_NUM \
+     --webui-port "$WEBUI_PORT" $PORT_FLAG $PORT_NUM $MASTER "$@"
+}
+
+# 调用start_instance方法，传入worker的启动数量，并且带上其他参数
+if [ "$SPARK_WORKER_INSTANCES" = "" ]; then
+  start_instance 1 "$@"
+else
+  for ((i=0; i<$SPARK_WORKER_INSTANCES; i++)); do
+    start_instance $(( 1 + $i )) "$@"
+  done
+fi
+```
+
+
+
+##### 2.3 执行start-slave.sh
 
 > sh -x /usr/local/spark/sbin/start-slave.sh spark://s101:7077
 
-```
+```shell
+# 判断是否配置了SPARK_HOME，如果没有则手动设置
 + '[' -z /usr/local/spark ']'
 
-
+# 定义CLASS变量，因为该脚本是用于启动worker，所以相关的类为Worker
 + CLASS=org.apache.spark.deploy.worker.Worker
 
-
+# 判断参数个数或者是是否包含--help...
 + [[ 1 -lt 1 ]]
 + [[ spark://s101:7077 = *--help ]]
 + [[ spark://s101:7077 = *-h ]]
+
+# 通过.加上文件名临时执行spark-config.sh脚本
+## 设置SPARK_HOME、SPARK_CONF_DIR以及python的一些环境变量
 + . /usr/local/spark/sbin/spark-config.sh
 ++ '[' -z /usr/local/spark ']'
 ++ export SPARK_CONF_DIR=/usr/local/spark/conf
@@ -1049,6 +1181,9 @@ s101: starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spar
 ++ PYTHONPATH=/usr/local/spark/python/lib/py4j-0.10.7-src.zip:/usr/local/spark/python:
 ++ export PYSPARK_PYTHONPATH_SET=1
 ++ PYSPARK_PYTHONPATH_SET=1
+
+# 通过.加上文件名临时执行load-spark-env.sh脚本
+## 设置SPARK_HOME、SPARK_SCALA_VERSION环境变量
 + . /usr/local/spark/bin/load-spark-env.sh
 ++ '[' -z /usr/local/spark ']'
 ++ '[' -z '' ']'
@@ -1072,14 +1207,17 @@ s101: starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spar
 ++ SPARK_SCALA_VERSION=2.12
 
 
+# 第一个参数应该是master参数，需要将该参数进行临时存储，因为可能会在master参数与其他参数之间加入其他的参数
 + MASTER=spark://s101:7077
 + shift
 
 
+# 设置worker的ui端口，默认为8081
 + '[' '' = '' ']'
 + SPARK_WORKER_WEBUI_PORT=8081
 
 
+# 设置启动的实例数量
 + '[' '' = '' ']'
 + start_instance 1
 + WORKER_NUM=1
@@ -1089,19 +1227,20 @@ s101: starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spar
 + PORT_NUM=
 + WEBUI_PORT=8081
 
+# 调用spark-daemon.sh脚本
 + /usr/local/spark/sbin/spark-daemon.sh start org.apache.spark.deploy.worker.Worker 1 --webui-port 8081 spark://s101:7077
 starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spark/logs/spark-hadoop-org.apache.spark.deploy.worker.Worker-1-s101.out
 ```
 
-#### 4. start-slave.sh调用spark-daemon.sh
+#### 3. start-slave.sh调用spark-daemon.sh
 
 >  /usr/local/spark/sbin/spark-daemon.sh start org.apache.spark.deploy.worker.Worker 1 --webui-port 8081 spark://s101:7077
 
-#### 5. 执行spark-daemon.sh
+##### 3.1 执行spark-daemon.sh
 
 > sh -x /usr/local/spark/sbin/spark-daemon.sh start org.apache.spark.deploy.worker.Worker 1 --webui-port 8081 spark://s101:7077
 
-```
+```shell
 + usage='Usage: spark-daemon.sh [--config <conf-dir>] (start|stop|submit|status) <spark-command> <spark-instance-number> <args...>'
 + '[' 6 -le 1 ']'
 + '[' -z /usr/local/spark ']'
@@ -1226,15 +1365,15 @@ starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spark/logs
 + [[ ! java =~ java ]]
 ```
 
-#### 6. spark-daemon.sh调用spark-class
+#### 4. spark-daemon.sh调用spark-class
 
 > /usr/local/spark/bin/spark-class org.apache.spark.deploy.worker.Worker --webui-port 8081 spark://s101:7077
 
-#### 7. 执行spark-class
+##### 4.1 执行spark-class
 
 > sh -x /usr/local/spark/bin/spark-class org.apache.spark.deploy.worker.Worker --webui-port 8081 spark://s101:7077
 
-```
+```shell
 + '[' -z /usr/local/spark ']'
 + . /usr/local/spark/bin/load-spark-env.sh
 ++ '[' -z /usr/local/spark ']'
@@ -1338,65 +1477,109 @@ starting org.apache.spark.deploy.worker.Worker, logging to /usr/local/spark/logs
 2019-10-20 18:39:25 INFO  Worker:54 - Successfully registered with master spark://s101:7077
 ```
 
-#### 8. 执行org.apache.spark.deploy.worker.Worker中的内容
+#### 5. 执行org.apache.spark.deploy.worker.Worker中的内容
 
 ```
 /usr/local/jdk/bin/java -cp '/usr/local/spark/conf/:/usr/local/spark/jars/*:/usr/local/spark/hadoop/etc/hadoop' -Xmx1g org.apache.spark.deploy.worker.Worker --webui-port 8081 spark://s101:7077
 ```
 
-#### 9. Worker执行内容
+#### 6. Worker执行内容
 
-1. 设置处理未被捕获的异常处理器
+##### 1. main方法
 
-2. 解析参数，并未sparkConf设置默认参数(默认的参数来自于$SPARK_HOME/conf/spark-defaults.con文件)
+```scala
+def main(argStrings: Array[String]) {
+    // 置处理未被捕获的异常处理器
+    Thread.setDefaultUncaughtExceptionHandler(new SparkUncaughtExceptionHandler(
+      exitOnUncaughtException = false))
+    Utils.initDaemon(log)
+    val conf = new SparkConf
+    // 解析参数，并未sparkConf设置默认参数(默认的参数来自于$SPARK_HOME/conf/spark-defaults.con文件)
+    val args = new WorkerArguments(argStrings, conf)
+    // 创建RpcEnv并启动RpcEndpoint
+    val rpcEnv = startRpcEnvAndEndpoint(args.host, args.port, args.webUiPort, args.cores,
+      args.memory, args.masters, args.workDir, conf = conf)
+    // 如果开启了external shuffle服务, 当请求启动多个worker时，我们只能启动第一个，剩下的都会失败，更多详情请查看：SPARK-20989.
+    val externalShuffleServiceEnabled = conf.getBoolean("spark.shuffle.service.enabled", false)
+    val sparkWorkerInstances = scala.sys.env.getOrElse("SPARK_WORKER_INSTANCES", "1").toInt
+    require(externalShuffleServiceEnabled == false || sparkWorkerInstances <= 1,
+    rpcEnv.awaitTermination()
+  }
+```
 
-3. 向message-dispacture注册Worker(RpcEndpoint的一个实例)
+##### 2. startRpcEnvAndEndpoint方法
 
-4. 判断**spark.shuffle.service.enabled**与**SPARK_WORKER_INSTANCES**是否冲突
+```scala
+def startRpcEnvAndEndpoint(
+      host: String,
+      port: Int,
+      webUiPort: Int,
+      cores: Int,
+      memory: Int,
+      masterUrls: Array[String],
+      workDir: String,
+      workerNumber: Option[Int] = None,
+      conf: SparkConf = new SparkConf): RpcEnv = {
 
-5. 因为Worker是RpcEndpoint的一个实例
+    // 获取系统名字
+    val systemName = SYSTEM_NAME + workerNumber.map(_.toString).getOrElse("")
+    // 创建一个SecurityManager、RpcEnv，为创建RpcEndPoint做准备
+    val securityMgr = new SecurityManager(conf)
+    val rpcEnv = RpcEnv.create(systemName, host, port, conf, securityMgr)
+    // 从spark://host:port类似的地址提取(host,port)
+    val masterAddresses = masterUrls.map(RpcAddress.fromSparkURL(_))
+    // 与master节点相同，调用org.apache.spark.rpc.netty.NettyRpcEnv#setupEndpoint方法进行NettyRpcEndpointRef的创建
+    rpcEnv.setupEndpoint(ENDPOINT_NAME, new Worker(rpcEnv, webUiPort, cores, memory,
+      masterAddresses, ENDPOINT_NAME, workDir, conf, securityMgr))
+    rpcEnv
+  }
+```
 
-   1. onstart
+##### 3. Worker中重写RpcEndpoint中的方法
 
-      1. 启动externalShuffleService
+1. ###### onstart()
 
-      2. 创建WorkerWebUI
+   1. 启动externalShuffleService
 
-      3. 向master进行注册
+   2. 创建WorkerWebUI
 
-         1. 通过从脚本传入的master参数创建newDaemonCachedThreadPool，该线程池的大小与master的数量相同
+   3. 向master进行注册
 
-         2. 线程池中的每个线程通过master的地址与end point name获取masterEndPoint
+      1. 通过从脚本传入的master参数创建newDaemonCachedThreadPool，该线程池的大小与master的数量相同
 
-         3. 向master发送注册信息
+      2. 线程池中的每个线程通过master的地址与end point name获取masterEndPoint
 
-            ```
-            消息内容：RegisterWorker( workerId, host, port, self, cores, memory, workerWebUiUrl, masterEndpoint.address)
-            ```
+      3. 向master发送注册信息
 
-   2. receive
+         ```
+         消息内容：RegisterWorker( workerId, host, port, self, cores, memory, workerWebUiUrl, masterEndpoint.address)
+         ```
 
-      1. 如果接受到的是**RegisterWorkerResponse**，则会进行接收到注册响应的逻辑处理
+2. ###### receive()
 
-         1. 更改master的相关属性
+   1. 如果接受到的是**RegisterWorkerResponse**，则会进行接收到注册响应的逻辑处理
 
-            ```
-            activeMasterUrl: String = masterRef.address.toSparkURL
-            activeMasterWebUiUrl : String = uiUrl
-            masterAddressToConnect: Option[RpcAddress] = Some(masterAddress)
-            master: Option[RpcEndpointRef] = Some(masterRef)
-            connected = true
-            ```
+      1. 更改master的相关属性
 
-         2. 通过newDaemonSingleThreadScheduledExecutor守护线程池每**15**秒发送一次心跳
+         ```
+         activeMasterUrl: String = masterRef.address.toSparkURL
+         activeMasterWebUiUrl : String = uiUrl
+         masterAddressToConnect: Option[RpcAddress] = Some(masterAddress)
+         master: Option[RpcEndpointRef] = Some(masterRef)
+         connected = true
+         ```
 
-         3. 如果开启了**spark.worker.cleanup.enabled**，则每**30**分钟进行一次工作空间的清理
+      2. 通过newDaemonSingleThreadScheduledExecutor守护线程池每**15**秒发送一次心跳
 
-         4. 向master发送最新的worker状态
+      3. 如果开启了**spark.worker.cleanup.enabled**，则每**30**分钟进行一次工作空间的清理
 
-            > ```
-            > WorkerLatestState(workerId, execs.toList, drivers.keys.toSeq)
-            > ```
+      4. 向master发送最新的worker状态
+
+         > ```
+         > WorkerLatestState(workerId, execs.toList, drivers.keys.toSeq)
+         > ```
+
+
 
 ## 3. 调试spark-submit.sh
 

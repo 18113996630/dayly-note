@@ -1,4 +1,4 @@
-# Java-大数据知识总结
+# Java知识总结
 
 ## Java基础
 
@@ -54,7 +54,7 @@ NIO是一种同步非阻塞的I/O模型，在Java 1.4 中引入了NIO框架，�
 
 > 使用Executors.newFixedThreadPool(5)类似方法进行获取线程池
 >
-> 通过new ThreadPoolExecutor()构造器自己创建线程池
+> 通过new ThreadPoolExecutor(......)构造器自己创建线程池
 
 
 
@@ -104,7 +104,7 @@ NIO是一种同步非阻塞的I/O模型，在Java 1.4 中引入了NIO框架，�
 
 ![](./pictures/内存结构.png)
 
-**使用ide查看程序heap使用情况：** VM options设置为：-XX:+PrintGCDetails 
+**使用idea查看程序heap使用情况：** VM options设置为：-XX:+PrintGCDetails 
 
 #### java垃圾回收器的假设 ####
 1. 大多数对象都会很快变得不可达
@@ -113,8 +113,8 @@ NIO是一种同步非阻塞的I/O模型，在Java 1.4 中引入了NIO框架，�
 
 #### GC流程 ####
 1. 对象首先在eden区产生
-2. 程序运行的过程中产生的对象越来越多，eden被装满后，会触发一次Minior GC，将eden中还存活的对象转移至From，并将对象的年龄设置为1
-3. From区满了的时候再触发一次Minior GC，将From中仍存活的对象复制到to，并将对象的年龄加1
+2. 程序运行的过程中产生的对象越来越多，eden被装满后，会触发一次Minior GC，将eden中还存活的对象转移至To，并将对象的年龄设置为1
+3. 当执行GC时，将Eden中的转移至To区，将From中仍存活的对象也复制到To，并将对象的年龄加1,同时交换From与To
 4. 当对象的年龄增长至15时，则会将该对象转移至老年代,对象晋升到老年代的年龄阈值，可以通过参数 -XX:MaxTenuringThreshold 来设置
 5. 当老年代满的时候则触发Full GC
 
@@ -161,7 +161,7 @@ NIO是一种同步非阻塞的I/O模型，在Java 1.4 中引入了NIO框架，�
 **存在的问题：**
 
 - 会产生空间碎片
-- 效率较低 
+- 效率较低
 
 #### 2. 复制算法 ####
 	将内存分为相同的两块，对象只放在一侧的内存中，当清除掉被标记的对象时，将剩余的对象复制到另外一侧的内存中。

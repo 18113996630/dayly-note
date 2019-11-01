@@ -37,6 +37,10 @@ equals和hashCode中有个约定：
 ### 5、NIO与IO的区别 ###
 NIO是一种同步非阻塞的I/O模型，在Java 1.4 中引入了NIO框架，对应 java.nio 包，提供了 Channel , Selector，Buffer等抽象
 
+### 6、反射
+
+> 使用场景：有一个List<T>数据，现传入参数Map<K, V>,key为T中的字段，需要根据传入的map对list进行过滤，此时可以使用反射获取Class对象，再通过从Class对象中获取getter方法来获取对象的值，从而完成了过滤
+
 
 ## 并发、线程 ##
 
@@ -247,7 +251,7 @@ G1收集器是一个面向服务器配置的垃圾收集器
 ## spring
 
 1. **什么是IOC、DI**
-  IOC全称为：inversion of control，即控制反转，控制反转是对于程序中对象的创建来说的，传统对象的创建方法是直接在代码中进行new，由代码来控制创建对象的逻辑；而使用spring框架，则是让程序在运行的时候根据不同的情况来创建对象，由spring来管理对象的声明周期。
+    IOC全称为：inversion of control，即控制反转，控制反转是对于程序中对象的创建来说的，传统对象的创建方法是直接在代码中进行new，由代码来控制创建对象的逻辑；而使用spring框架，则是让程序在运行的时候根据不同的情况来创建对象，由spring来管理对象的声明周期。
 
   DI全称为：Injection inversion，依赖注入，di是ioc的实现过程，di可以根据对象的字段、getset、构造器来进行对象的创建。
 
@@ -273,7 +277,7 @@ G1收集器是一个面向服务器配置的垃圾收集器
 
 
 
-## 常用组件
+# 常用组件
 
 ### Redis ###
 
@@ -330,7 +334,7 @@ G1收集器是一个面向服务器配置的垃圾收集器
 > 1. **RDB持久化**是指在指定的时间间隔内将内存中的数据集快照写入磁盘，实际操作过程是fork一个子进程，先将数据集写入临时文件，写入成功后，再替换之前的文件，用二进制压缩存储。
 > 2. **AOF持久化**以日志的形式记录服务器所处理的每一个写、删除操作，查询操作不会记录，以文本的方式记录，可以打开文件看到详细的操作记录。
 
-## 常见算法
+# 常见算法
 
 ### bitmap  
 > 使用bit位来表示数据存在与否，比如性别为男可以创建为一个bitmap，若user为男，则将对应userId的bit为置为1，否则为0；多个bitmap可以进行并、交、异或操作
@@ -342,9 +346,50 @@ G1收集器是一个面向服务器配置的垃圾收集器
 
 
 
+# 设计模式
 
+## 1. 策略模式
 
+> 替代大量的if判断，满足对修改关闭，对扩展开放的原则
 
+### 1. 实现过程
+
+#### 1. 创建一个Interface，并编写抽象方法
+
+```java
+public interface Query {
+	/**
+	 * 调用入口
+	 * @param datas idescartes数据
+	 * @param params 查询参数
+	 * @return httpResponse
+	 */
+	String query(List<Idescartes> datas, Map<String, Object> params);
+}	
+```
+
+#### 2. 创建一个上下文对象，并持有该Interface，并提供一个方法供客户端调用，但方法内部仍是由调用Interface的方法
+
+```java
+public class QueryContext {
+	private Query query;
+
+	public QueryContext(Query query) {
+		this.query = query;
+	}
+
+	public String query(List<Idescartes> data, Map<String, Object> params){
+		if (query == null) {
+			return HttpResponse.error("can't find the corresponding query type, see the detail : com.bitservice.dao.QueryFactory");
+		}
+		return query.query(data, params);
+	}
+}
+```
+
+#### 3. 需要不同处理逻辑的时候实现该Interface即可
+
+#### 4. 提供一个工厂类，针对客户端不同的情况创建不同的对象
 
 # 大数据
 
@@ -362,7 +407,7 @@ G1收集器是一个面向服务器配置的垃圾收集器
 >
 > **Hadoop Mr-v2**
 >
-> ​	将运行时环境改为了yarn，yarn中包含了Resource Scheduler和Application Manager，将资源调度和任务分配进行了隔离	
+> ​	将运行时环境改为了yarn，yarn中包含了Resource Scheduler和Application Manager，将资源调度和任务分配进行了隔离
 
 ### 1. HDFS
 
@@ -371,6 +416,17 @@ G1收集器是一个面向服务器配置的垃圾收集器
 > 管理hdfs文件的元数据(目录结构)
 >
 > namenode会将对文件系统的修改记录作为日志追加到本地的文件系统中，当NameNode启动时，它从fsimage文件中读取HDFS状态，从编辑日志文件中应用编辑。然后它将新的HDFS状态写入fsimage并使用空的编辑文件开始正常操作。由于NameNode仅在启动期间合并fsimage和编辑文件，因此编辑日志文件在繁忙的群集上可能会随着时间的推移而变得非常大。较大的编辑文件的另一个副作用是下次重新启动NameNode需要更长的时间。
+
+**Hadoop NameNode 如何承载每秒上千次的高并发访问?**
+
+- 分段锁+内存双缓冲机制
+
+1. 串行获取全局递增的transactionId(通过加锁实现全局递增)，获取到之后将edit-log写入内存区域A，然后释放锁，因为写入内存的速度会很快，所以即使是串行也不会耗费大量时间
+2. 尝试第二次获取锁，如果发现有线程在进行磁盘或者网络的写操作，则sleep，并释放锁
+3. 如果没有线程进行磁盘或者网络的写操作，则先判断是否存在有transactionId比自己大的线程已经将edit-log写入磁盘与JournalNodes集群，如果有的话，说明属于该线程的edit-log也被写入到磁盘和JournalNodes集群了，则释放锁
+4. 如果不存在transactionId比自己大的线程已经将edit-log写入磁盘与JournalNodes集群，则将内存区域A与B进行交换，并释放锁，将内存区域A的数据写入到磁盘和JournalNodes集群，因为在写入数据到磁盘或者集群的过程中是不持有锁的，所以内存区域B仍可以正常写，写完之后唤醒之前休眠的线程
+
+>  https://mp.weixin.qq.com/s?__biz=MzIxODM4MjA5MA==&mid=2247488139&idx=1&sn=8927925c0a7a886a28c0d53b435d47ff&chksm=97ea38eea09db1f8b51be5099364acb9a49f8b94b5ed9e1670cc12542bc7b95a051d55e051d9&scene=7&key=0e97a3aed232b8eb6b2f8983a8573bea00c37682bdf7834ab21ff8c4fff455db643061ffaf18e4c53af0f9023acc99b279e8940038c23c29b4cbf93ef98c1998707f552647803572a7b96fa6b576dc63&ascene=0&uin=MTI0Njc4ODU4NA%3D%3D&devicetype=Windows+10&version=62070152&lang=zh_CN&pass_ticket=aGa70xt%2FWGtxWSX0s7IfBKOBmdrzdaLb8SHbbE5x9TXsrZYHkkaL9LCR8YEx8xlw 
 
 #### 2. DataNode
 
@@ -384,29 +440,29 @@ G1收集器是一个面向服务器配置的垃圾收集器
 
 #### 4. Hdfs的写数据流程
 
-##### 	1. client向namenode发送写请求
+##### 		1. client向namenode发送写请求
 
-##### 	2. namenode检查是否已存在该文件，目标路径的父路径是否存在，返回检查结果给client
+##### 		2. namenode检查是否已存在该文件，目标路径的父路径是否存在，返回检查结果给client
 
-##### 	3. 若接收到允许写的响应，则请求获取保存数据的datanode的信息
+##### 		3. 若接收到允许写的响应，则请求获取保存数据的datanode的信息
 
-##### 	4. namenode对datanode进行检查，将分配信息发送回client
+##### 		4. namenode对datanode进行检查，将分配信息发送回client
 
-##### 	5. client先在本地根据blocksize进行文件的划分，根据返回的datanode信息请求多个datanode建立piplines
+##### 		5. client先在本地根据blocksize进行文件的划分，根据返回的datanode信息请求多个datanode建立piplines
 
-##### 	6. 多个datanode响应client，建立传输piplines，在client发送数据到其中一个datanode的同时(发送数据的大小为packet大小：默认为64kb)，数据会在pipline中流动，保存其他datanode
+##### 		6. 多个datanode响应client，建立传输piplines，在client发送数据到其中一个datanode的同时(发送数据的大小为packet大小：默认为64kb)，数据会在pipline中流动，保存其他datanode
 
-##### 	7. 写完一个block之后datanode会返回确认信息给client
+##### 		7. 写完一个block之后datanode会返回确认信息给client
 
-##### 	8. 所有block写完之后datanode向namenode返回完成信号
+##### 		8. 所有block写完之后datanode向namenode返回完成信号
 
 #### 5. Hdfs的读流程
 
-##### 	1. client向namenode发送读请求
+##### 		1. client向namenode发送读请求
 
-##### 	2. namenode返回数据对应的datanode信息
+##### 		2. namenode返回数据对应的datanode信息
 
-##### 	3. client与datanode建立传输pipline获取数据
+##### 		3. client与datanode建立传输pipline获取数据
 
 #### **6. Hadoop优化**
 
@@ -439,9 +495,9 @@ hdfs dfs -ls har:///flink/zip/pic.har
 
 ### 1. 概念
 
->Yarn是一种新的 Hadoop 资源管理器，它是一个通用资源管理系统，可为上层应用提供统一的资源管理和调度，它的引入为集群在利用率、资源统一管理和数据共享等方面带来了巨大好处。
+>Yarn是一种新的Hadoop资源管理器，它是一个通用资源管理系统，可为上层应用提供统一的资源管理和调度，它的引入为集群在利用率、资源统一管理和数据共享等方面带来了巨大好处。
 
-#### 1. ResourceManager		
+#### 1. ResourceManager
 
 ```
 包含Application Manager和Resource Scheduler
@@ -515,7 +571,9 @@ Application Master和Map、Reduce都包含在Container里面
 
 ![yarn提交流程](./pictures/yarn中MapReduce提交流程.png)
 
+### 4. spark使用yarn作为资源调度管理系统时的资源分配
 
+> <https://blog.csdn.net/rlnLo2pNEfx9c/article/details/81844218>
 
 
 
@@ -537,7 +595,7 @@ Application Master和Map、Reduce都包含在Container里面
 
 > 没有在map端进行combine，所以执行的代价可能会比较大，推荐使用reduceByKey
 
-#### 2. ***Partitions
+#### 2. XXXPartitions
 
 > 作用对象为partition，而不是单个的元素，在操作数据库时一定要使用类似算子，一个partition一个connection
 
@@ -1422,7 +1480,5 @@ http://blog.java1234.com/index.html
 > 第三阶段是对排序后的键值对调用reduce方法。键相等的键值对调用一次reduce方法，每次调用会产生零个或者多个键值对。
 > 最后把这些输出的键值对写入到HDFS文件中。
 > 在整个MapReduce程序的开发过程中，我们最大的工作量是覆盖map函数和覆盖reduce函数。
-
-
 
 

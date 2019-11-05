@@ -1387,31 +1387,14 @@ http://blog.java1234.com/index.html
 
 
 
-##### 
-
-##### 下面哪个程序负责 HDFS 数据存储。
-
-> Datanode 
-
-##### HDfS 中的 block 默认保存几份？
-
-> 3 份 
-
-##### 下列哪个程序通常与 NameNode 在一个节点启动？
-
-> Jobtracker
-
-##### HDFS 默认 Block Size
-
-> 128MB
-
 ##### 下列哪项通常是集群的最主要瓶颈
 
 > 磁盘 IO
->  首先集群的目的是为了节省成本，用廉价的 pc 机，取代小型机及大型机。小型机和大型机有什么特点？
->  1. cpu 处理能力强
->  2.内存够大，所以集群的瓶颈不可能是 a 和 d
->  3.如果是互联网有瓶颈，可以让集群搭建内网。每次写入数据都要通过网络（集群是内网），然后还要写入 3 份数据，所以 IO 就会打折扣。
+> 首先集群的目的是为了节省成本，用廉价的 pc 机，取代小型机及大型机。小型机和大型机有什么特点？
+>
+> 1. cpu 处理能力强
+>    2.内存够大，所以集群的瓶颈不可能是 a 和 d
+>    3.如果是互联网有瓶颈，可以让集群搭建内网。每次写入数据都要通过网络（集群是内网），然后还要写入 3 份数据，所以 IO 就会打折扣。
 
 ##### 关于 SecondaryNameNode 哪项是正确的？
 
@@ -1419,18 +1402,18 @@ http://blog.java1234.com/index.html
 
 ##### 下列哪项可以作为集群的管理？
 
->Puppet  Pdsh  Zookeeper
+> Puppet  Pdsh  Zookeeper
 
 ##### Client 端上传文件的时候下列哪项正确
 
 > Client 端将文件切分为 Block，依次上传
 >
 > Client 向 NameNode 发起文件写入的请求。NameNode 根据文件大小和文件块配置情况，返回给 Client 它所管理部分 DataNode 的信息。
->  Client 将文件划分为多个 Block，根据 DataNode 的地址信息，按顺序写入到每一个DataNode 块中。具体查看HDFS 体系结构简介及优缺点。
+> Client 将文件划分为多个 Block，根据 DataNode 的地址信息，按顺序写入到每一个DataNode 块中。具体查看HDFS 体系结构简介及优缺点。
 
 ##### mapreduce的原理?
 
->MapReduce采用"分而治之"的思想，把对大规模数据集的操作，分发给一个主节点管理下的各个分节点共同完成，然后通过整合各个节点的中间结果，
+> MapReduce采用"分而治之"的思想，把对大规模数据集的操作，分发给一个主节点管理下的各个分节点共同完成，然后通过整合各个节点的中间结果，
 > 得到最终结果。简单地说，MapReduce就是"任务的分解与结果的汇总"。
 > 在Hadoop中，用于执行MapReduce任务的机器角色有两个：一个是JobTracker；另一个是TaskTracker，JobTracker是用于调度工作的，TaskTracker
 > 是用于执行工作的。一个Hadoop集群中只有一台JobTracker。
@@ -1441,49 +1424,52 @@ http://blog.java1234.com/index.html
 
 ##### hdfs写流程
 
->client链接namenode存数据
->namenode记录一条数据位置信息（元数据），告诉client存哪。
->client用hdfs的api将数据块（默认是64M）存储到datanode上。
->datanode将数据水平备份。并且备份完将反馈client。
->client通知namenode存储块完毕。
->namenode将元数据同步到内存中。
->另一块循环上面的过程。
+> client链接namenode存数据
+> namenode记录一条数据位置信息（元数据），告诉client存哪。
+> client用hdfs的api将数据块（默认是64M）存储到datanode上。
+> datanode将数据水平备份。并且备份完将反馈client。
+> client通知namenode存储块完毕。
+> namenode将元数据同步到内存中。
+> 另一块循环上面的过程。
 
 ##### hdfs读流程
 
->client链接namenode，查看元数据，找到数据的存储位置。
->client通过hdfs的api并发读取数据。
->关闭连接。
+> client链接namenode，查看元数据，找到数据的存储位置。
+> client通过hdfs的api并发读取数据。
+> 关闭连接。
 
-##### 举一个简单的例子说明mapreduce是怎么来运行的 ?
+##### 压缩有哪几种？区别 	什么场景用
 
->MapReduce运行的时候，会通过Mapper运行的任务读取HDFS中的数据文件，然后调用自己的方法，处理数据，最后输出。
-> Reducer任务会接收Mapper任务输出的数据，作为自己的输入数据，调用自己的方法，最后输出到HDFS的文件中。
-> Mapper任务的执行过程详解
-> 每个Mapper任务是一个[**Java**](http://lib.csdn.net/base/java)进程，它会读取HDFS中的文件，解析成很多的键值对，经过我们覆盖的map方法处理后，
-> 转换为很多的键值对再输出。整个Mapper任务的处理过程又可以分为以下六个阶段：
-> 第一阶段是把输入文件按照一定的标准分片(InputSplit)，每个输入片的大小是固定的。默认情况下，输入片(InputSplit)
-> 的大小与数据块(Block)的大小是相同的。如果数据块(Block)的大小是默认值128MB，输入文件有两个，一个是32MB，一个是
-> 172MB。那么小的文件是一个输入片，大文件会分为两个数据块，那么是两个输入片。一共产生三个输入片。每一个输入片由
-> 一个Mapper进程处理。这里的三个输入片，会有三个Mapper进程处理。
-> 第二阶段是对输入片中的记录按照一定的规则解析成键值对。有个默认规则是把每一行文本内容解析成键值对。“键”是每一
-> 行的起始位置(单位是字节)，“值”是本行的文本内容。
-> 第三阶段是调用Mapper类中的map方法。第二阶段中解析出来的每一个键值对，调用一次map方法。如果有1000个键值对，就会
-> 调用1000次map方法。每一次调用map方法会输出零个或者多个键值对。
-> 第四阶段是按照一定的规则对第三阶段输出的键值对进行分区。比较是基于键进行的。比如我们的键表示省份(如北京、上海、
-> 山东等)，那么就可以按照不同省份进行分区，同一个省份的键值对划分到一个区中。默认是只有一个区。分区的数量就是Reducer
-> 任务运行的数量。默认只有一个Reducer任务。
-> 第五阶段是对每个分区中的键值对进行排序。首先，按照键进行排序，对于键相同的键值对，按照值进行排序。比如三个键值
-> 对<2,2>、<1,3>、<2,1>，键和值分别是整数。那么排序后的结果是<1,3>、<2,1>、<2,2>。如果有第六阶段，那么进入第六阶段；
-> 如果没有，直接输出到本地的[**Linux**](http://lib.csdn.net/base/linux)文件中。
-> 第六阶段是对数据进行归约处理，也就是reduce处理。键相等的键值对会调用一次reduce方法。经过这一阶段，数据量会减少。
-> 归约后的数据输出到本地的linxu文件中。本阶段默认是没有的，需要用户自己增加这一阶段的代码。
-> Reducer任务的执行过程详解
-> 每个Reducer任务是一个java进程。Reducer任务接收Mapper任务的输出，归约处理后写入到HDFS中，可以分为三个阶段：
-> 第一阶段是Reducer任务会主动从Mapper任务复制其输出的键值对。Mapper任务可能会有很多，因此Reducer会复制多个Mapper的输出。
-> 第二阶段是把复制到Reducer本地数据，全部进行合并，即把分散的数据合并成一个大的数据。再对合并后的数据排序。
-> 第三阶段是对排序后的键值对调用reduce方法。键相等的键值对调用一次reduce方法，每次调用会产生零个或者多个键值对。
-> 最后把这些输出的键值对写入到HDFS文件中。
-> 在整个MapReduce程序的开发过程中，我们最大的工作量是覆盖map函数和覆盖reduce函数。
+1. gzip
 
+   1. 优点：hadoop原生支持，处理压缩文件和文本文件一样，linux系统自带gzip命令，压缩率高
 
+   2. 缺点：不支持split
+
+   3. 使用方法
+
+      > gzip -v zookeeper.txt      -v显示进度
+      >
+      > gzip -dv zookeeper.txt.gz     -d-解压
+
+2. lzo 
+
+   1. 优点： 压缩/解压速度也比较快，合理的压缩率；支持split，是hadoop中最流行的压缩格式；支持hadoop native库；需要在linux系统下自行安装lzop命令，使用方便 
+   2. 缺点：压缩率比gzip要低；hadoop本身不支持，需要安装；lzo虽然支持split，但需要对lzo文件建索引，否则hadoop也是会把lzo文件看成一个普通文件（为了支持split需要建索引，需要指定inputformat为lzo格式） 
+
+##### HDFS读写流程
+
+1. 读流程：
+   1. client向Namenode发送读请求，Namenode在文件树种找到对应的元数据信息，即该文件存储在哪些节点上，并将该信息返回给client，client根据接收到的这些数据向对应的DataNode请求，DataNode以package为单位将文件向流中写入，写完之后关闭流
+2. 写流程：
+   1. client向Namenode发送写请求
+   2. Namenode进行写前检查，检查文件是否已经存在、权限等等，如果通过检查，则将操作先写入editLog，保证操作记录的完整性，将流对象进行返回
+   3. client端将文件按照blockSize大小进行文件的切分
+   4. client与多个DataNode建立数据PipeLine，向第一个DataNode发送文件数据，同时该数据会通过PipeLine传给第二个、第三个DataNode
+   5. DataNode写完一个块后，向client返回确认信息
+   6. 数据写完后，关闭输入流
+   7. 向Namenode发送完成信号
+
+##### HDFS的NN的内存中生产上如何规划？
+
+> https://www.cnblogs.com/sky-sql/p/6848830.html 

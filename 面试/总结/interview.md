@@ -429,7 +429,7 @@ public class QueryContext {
 
 4. 如果不存在transactionId比自己大的线程已经将edit-log写入磁盘与JournalNodes集群，则将内存区域A与B进行交换，并释放锁，将内存区域A的数据写入到磁盘和JournalNodes集群，因为在写入数据到磁盘或者集群的过程中是不持有锁的，所以内存区域B仍可以正常写，写完之后唤醒之前休眠的线程
 
-   ![](D:\workspace\github\dayly-note\面试\总结\pictures\hadoopnamnode.png)
+   ![](.\pictures\hadoopnamnode.png)
 
 >  https://mp.weixin.qq.com/s?__biz=MzIxODM4MjA5MA==&mid=2247488139&idx=1&sn=8927925c0a7a886a28c0d53b435d47ff&chksm=97ea38eea09db1f8b51be5099364acb9a49f8b94b5ed9e1670cc12542bc7b95a051d55e051d9&scene=7&key=0e97a3aed232b8eb6b2f8983a8573bea00c37682bdf7834ab21ff8c4fff455db643061ffaf18e4c53af0f9023acc99b279e8940038c23c29b4cbf93ef98c1998707f552647803572a7b96fa6b576dc63&ascene=0&uin=MTI0Njc4ODU4NA%3D%3D&devicetype=Windows+10&version=62070152&lang=zh_CN&pass_ticket=aGa70xt%2FWGtxWSX0s7IfBKOBmdrzdaLb8SHbbE5x9TXsrZYHkkaL9LCR8YEx8xlw 
 
@@ -1473,3 +1473,9 @@ http://blog.java1234.com/index.html
 ##### HDFS的NN的内存中生产上如何规划？
 
 > https://www.cnblogs.com/sky-sql/p/6848830.html 
+>
+> NN的主要组成部分：
+>
+> -  Namespace：维护整个文件系统的目录树结构及目录树上的状态变化；
+> - BlockManager：维护整个文件系统中与数据块相关的信息及数据块的状态变化；
+> - NetworkTopology：维护机架拓扑及DataNode信息，机架感知的基础； 

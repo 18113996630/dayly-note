@@ -1247,11 +1247,32 @@ https://www.bilibili.com/video/av33589600/
 https://blog.csdn.net/xchnba2107
 http://blog.java1234.com/index.html
 
+#### 1.gc算法有哪些，在什么地方使用?
 
-1.gc算法有哪些，在什么地方使用?
+> 标记清除算法：将待清除的对象进行标记，只清除被标记的对象，缺点是会产生内存碎片
+>
+> 复制清除算法：将内存分为两个空间，进行gc时，将未被清除的对象复制到另一内存区域，只清理剩余的对象，缺点是可能复制的对象很多
+>
+> 标记整理算法：将待清除的对象进行标记，存活的对象向一端移动，以分界点为边界进行内存的清除
+>
+> 分代收集算法：青年代使用复制清除算法，因为剩余的对象比较少；而老年代使用标记清除或者标记整理算法
 
-2.join shuffle是怎么实现的，如果自己写代码怎么写？
-3.topN场景，如果iterator里的记录特别多，怎么选出前10个？时间复杂度是多少？怎么写代码可以降低复杂度？
+#### 2.join shuffle是怎么实现的，如果自己写代码怎么写？
+
+> <https://blog.csdn.net/wlk_328909605/article/details/82933552>
+
+> 先进行keyBy，然后再进行map
+>
+> spark sql中的join（事实表join维度表）优化：
+>
+> 1. 将事实表进行broadCast，使得每个excutor在本地获取到broadCast value后即可以进行join（要求：事实表不能超过spark.sql.autoBroadcastJoinThreshold设置的值，默认是10M）
+> 2. sort merge join：将两张表进行hash repartition并进行排序，然后再进行join，如果相同则输出，左边小则取左边，否则取右边
+> 3. shuffle hash join：将两张表都进行hash repartition
+
+#### 3.topN场景，如果iterator里的记录特别多，怎么选出前10个？时间复杂度是多少？怎么写代码可以降低复杂度？
+
+- 场景：住房套次、房屋成交均价
+
 4.hdfs上有一个大的xml文件，统计学生成绩？ 
 
 <info>

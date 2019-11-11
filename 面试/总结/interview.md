@@ -27,7 +27,12 @@ equals和hashCode中有个约定：
 	the hashCode method must consistently return the same integer`  
 
 - 当equals未被修改时，hashCode()应该返回同样的值。 
+
 - 如果两个对象根据equals(Object)方法是相等的，那么调用这两个对象中任一个对象的hashCode方法必须产生同样的整数结果  
+
+  > ```
+  > If two objects are equal according to the {@code equals(Object)} method, then calling the {@code hashCode} method on each of the two objects must produce the same integer result.
+  > ```
 
 在日常开发中，Object的equals的方法一般是不满足需求的，如果重写了equals方法但是没有重写hashCode方法，则违反了上述第二条规则，所以重写了equals必须重写hashCode方法
 
@@ -66,11 +71,15 @@ NIO是一种同步非阻塞的I/O模型，在Java 1.4 中引入了NIO框架，�
 
 **使用方法：**
 
-1. 实现**Cloneable**接口，若直接调用会出现**CloneNotSupportedException**异常
+1. 实现**Cloneable**接口，若不实现接口直接进行调用会出现**CloneNotSupportedException**异常
 2. 若只需要对象的浅克隆，则不用重写clone方法
 3. 若需要将对象进行深克隆，则**附属对象也需要实现Cloneable接口，并重写父级对象的clone方法**
 
 ### 10、HashMap
+
+1. 为什么HashMap的长度是2的整数幂？
+
+   因为HashMap是将
 
 ![](./pictures/map的put执行流程.png)
 

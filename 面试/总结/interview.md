@@ -55,12 +55,97 @@ NIO是一种同步非阻塞的I/O模型，在Java 1.4 中引入了NIO框架，�
 -  值传递的时候，将实参的**值**，copy一份给形参
 - 引用传递的时候，将实参的**地址值**，copy一份给形参
 
+```
+public class Test {
+	public static void main(String[] args) {
+		Area area = new Area();
+		area.setName("a");
+		m1(area);
+		//m1
+		System.out.println(area.getName());
+		m2(area);
+		//NullPointException
+		System.out.println(area.getName());
+		m3(area);
+		//m3
+		System.out.println(area.getName());
+	}
+
+
+	private static void changeValue(String s){
+		s = "被改变了";
+	}
+
+	private static void changeValue(Area s){
+		s.setName("123");
+	}
+
+
+	private static void m1(Area area) {
+		area.setName("m1");
+	}
+
+	private static void m2(Area area) {
+		area.setName("m2");
+		area = null;
+	}
+
+	private static void m3(Area area) {
+		area = new Area();
+		area.setName("m3");
+	}
+}
+class Area{
+	private String name;
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+}
+```
+
 ### 8、对象的创建
 
 - 使用new关键字进行创建
 - 通过反射获取class对象，使用newInstance方法创建对象
 - 使用反序列化从文件中读取数据创建对象
 - 使用clone()方法创建对象
+```
+public class Test implements Cloneable, Serializable {
+	private String name = "hello";
+
+	public static void main(String[] args) throws Exception {
+		//通过new的方式
+		Test application = new Test();
+		System.out.println("new：" + application.getClass().getClassLoader());
+		// 通过反射的方式
+		Class<Test> aClass = (Class<Test>) Class.forName("com.hrong.interview.创建对象.Test");
+		Test instance = aClass.newInstance();
+		System.out.println("反射：" + instance.getClass().getClassLoader());
+		// 克隆
+		Test test = new Test();
+		Test cloneTest = (Test) test.clone();
+		System.out.println("克隆：" + cloneTest.getClass().getClassLoader());
+		// 反序列化
+		File f = new File("test.obj");
+		FileOutputStream fos = new FileOutputStream(f);
+		ObjectOutputStream oos = new ObjectOutputStream(fos);
+		FileInputStream fis = new FileInputStream(f);
+		ObjectInputStream ois = new ObjectInputStream(fis);
+		//序列化对象，写入到磁盘中
+		oos.writeObject(application);
+		//反序列化对象
+		Test objTest = (Test) ois.readObject();
+		System.out.println("反序列化：" + objTest.getClass().getClassLoader());
+	}
+}
+```
+
+
 
 ### 9、对象的克隆
 
@@ -77,9 +162,11 @@ NIO是一种同步非阻塞的I/O模型，在Java 1.4 中引入了NIO框架，�
 
 ### 10、HashMap
 
+> https://www.cnblogs.com/xiaolovewei/p/7993440.html
+
 1. 为什么HashMap的长度是2的整数幂？
 
-   因为HashMap是将
+   因为HashMap是把key的hash值与length-1进行&运算，将结果作为数组下标，当hashmap的长度为2的整数幂时，length-1（每一位都是1）与hash值进行&运算时，结果必定属于区间：[0,length-1]，hash值的每一位数都能与length-1进行运算，能均匀减少碰撞
 
 ![](./pictures/map的put执行流程.png)
 

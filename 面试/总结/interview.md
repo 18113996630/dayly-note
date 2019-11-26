@@ -356,13 +356,13 @@ G1收集器是一个面向服务器配置的垃圾收集器
    ```
    在echo Using CATALINA_BASE:   "%CATALINA_BASE%"的上面一行加下面代码：
    
-   set JAVA_OPTS=-Xms1024m -Xmx4096m -XX:PermSize=128m -XX:MaxPermSize=256m
+   set JAVA_OPTS=-Xms128m -Xmx256m -XX:PermSize=128m -XX:MaxPermSize=256m
    
    加入后位置如下：
    
    rem ----- Execute The Requested Command ---------------------------------------
    
-   set JAVA_OPTS=-Xms1024m -Xmx4096m -XX:PermSize=128m -XX:MaxPermSize=256m
+   set JAVA_OPTS=-Xms128m -Xmx256m -XX:PermSize=128m -XX:MaxPermSize=256m
    
    echo Using CATALINA_BASE:   "%CATALINA_BASE%"
    参数说明：

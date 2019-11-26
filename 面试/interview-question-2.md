@@ -76,22 +76,119 @@ class org.hr.testDemo.extend.multi.Entry$Inner
    > 4. 等待队列
    > 5. 等待队列满了并且线程数量达到最大线程数量时对于任务的拒绝策略
 
-10. ##### Spring的事务传播行为
+10. ##### sychronized和lock区别
 
-11. ##### AOP
+    | 类别     |                         synchronized                         |                             Lock                             |
+    | -------- | :----------------------------------------------------------: | :----------------------------------------------------------: |
+    | 存在层次 |                  Java的关键字，在jvm层面上                   |                           是一个类                           |
+    | 锁的释放 | 1、以获取锁的线程执行完同步代码，释放锁 2、线程执行发生异常，jvm会让线程释放锁 |         在finally中必须释放锁，不然容易造成线程死锁          |
+    | 锁的获取 |  假设A线程获得锁，B线程等待。如果A线程阻塞，B线程会一直等待  | 分情况而定，Lock有多个锁获取的方式，具体下面会说道，大致就是可以尝试获得锁，线程可以不用一直等待 |
+    | 锁状态   |                           无法判断                           |                           可以判断                           |
+    | 锁类型   |                    可重入 不可中断 非公平                    |               可重入 可判断 可公平（两者皆可）               |
+    | 性能     |                           少量同步                           |                           大量同步                           |
 
-12. ##### AQS
+11. ##### 分布式锁
 
-13. ##### 分布式锁
+    > 原理：使用redis的setnx命令进行实现
 
-14. ##### 手写算法题统计连续子数组和等于指定值的次数
+    ```java
+    package com.hrong.transaction.util;
+    
+    import lombok.extern.slf4j.Slf4j;
+    import org.apache.commons.lang3.StringUtils;
+    import org.springframework.data.redis.core.StringRedisTemplate;
+    import org.springframework.stereotype.Component;
+    
+    import javax.annotation.Resource;
+    
+    /**
+        * @author huangrong
+        */
+    @Slf4j
+    @Component
+    public class DistributedLockHandler {
+    
+        @Resource
+        private StringRedisTemplate stringRedisTemplate;
+    
+        /**
+         * 加锁
+         * @param key productId - 商品的唯一标志
+         * @param value  当前时间+超时时间 也就是时间戳
+         * @return
+         */
+        public boolean lock(String key,String value){
+            //对应setnx命令
+            if(stringRedisTemplate.opsForValue().setIfAbsent(key,value)){
+                //可以成功设置,也就是key不存在
+                return true;
+            }
+    
+            //判断锁超时 - 防止原来的操作异常，没有运行解锁操作  防止死锁
+            String currentValue = stringRedisTemplate.opsForValue().get(key);
+            //如果锁过期
+            //currentValue不为空且小于当前时间
+            if(!StringUtils.isEmpty(currentValue) && Long.parseLong(currentValue) < System.currentTimeMillis()){
+                //获取上一个锁的时间value
+                //对应getset，如果key存在
+                String oldValue =stringRedisTemplate.opsForValue().getAndSet(key,value);
+    
+                //假设两个线程同时进来这里，因为key被占用了，而且锁过期了。获取的值currentValue=A(get取的旧的值肯定是一样的),两个线程的value都是B,key都是K.锁时间已经过期了。
+                //而这里面的getAndSet一次只会一个执行，也就是一个执行之后，上一个的value已经变成了B。只有一个线程获取的上一个值会是A，另一个线程拿到的值是B。
+                if(!StringUtils.isEmpty(oldValue) && oldValue.equals(currentValue) ){
+                    //oldValue不为空且oldValue等于currentValue，也就是校验是不是上个对应的商品时间戳，也是防止并发
+                    return true;
+                }
+            }
+            return false;
+        }
+        /**
+         * 解锁
+         */
+        public void unlock(String key,String value){
+            try {
+                String currentValue = stringRedisTemplate.opsForValue().get(key);
+                if(!StringUtils.isEmpty(currentValue) && currentValue.equals(value) ){
+                    //删除key
+                    stringRedisTemplate.opsForValue().getOperations().delete(key);
+                }
+            } catch (Exception e) {
+                log.error("[Redis分布式锁] 解锁出现异常了",e);
+            }
+        }
+    }
+    ```
 
-15. ##### java List，HashMap的操作
+12. ##### 手写算法题统计连续子数组和等于指定值的次数
 
-16. ##### B树遍历比二叉树快还是慢
+13. ##### java List，HashMap的操作
 
-17. ##### 为什么ORACLE默认使用BTREE的存储结构
+    1. List
 
-答BTREE适用于早起计算机内存不大的时候，可以当做整个文件读进内存进行读写操作。
+       1. ArrayList
 
-18. ##### 堆排序
+          > ArrayList善于查询，因为数组在堆中是一块连续的内存空间，可以直接通过下标获取到值 。创建的时候如果清楚元素数量最好初始化ArrayList的时候就指定容量。
+          >
+          > 
+          >
+          > 使用object[]数组来存储数据，创建的时候如果没有指定容量，则默认为10（懒加载，并不会直接创建对象）
+          >
+          > 新增元素的时候，会进行容量是否溢出的判断，如果需要扩容的话，扩容1.5倍，使用`elementData = Arrays.copyOf(elementData, newCapacity);`方法进行扩容
+
+       2. LinkedList
+
+          >LinkedList善于增删，因为内存不连续，list中的元素持有上个元素和下一个元素的引用，可以直接修改引用指向即可完成增删操作，不善于查询，只能从头遍历
+          >
+          >
+          >
+          >使用Node链表来保存数据，会持有first和last元素的引用，新增删除操作都是针对链表来进行操作
+
+       
+
+14. ##### B树遍历比二叉树快还是慢
+
+15. ##### 为什么ORACLE默认使用BTREE的存储结构
+
+   BTREE适用于早起计算机内存不大的时候，可以当做整个文件读进内存进行读写操作。
+
+16. ##### 堆排序

@@ -197,7 +197,10 @@ public class Test implements Cloneable, Serializable {
 
 ### 1. JVM内存模型(jdk1.8后) ###
 
+<img src="./pictures/内存模型1.8.png" alt="1.8内存模型" style="zoom: 50%;float: left" />
+
 - **线程独享**
+	
 	- 栈 
 		> 由栈帧组成，栈帧由局部变量表、操作数栈、动态链接、方法出口信息构成。  
 		> 局部变量表保存八大基本类型(boolean、byte、char、short、int、float、long、double)和对象引用 

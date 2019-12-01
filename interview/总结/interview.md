@@ -44,7 +44,9 @@ NIO是一种同步非阻塞的I/O模型，在Java 1.4 中引入了NIO框架，�
 
 ### 6、反射
 
-> 使用场景：有一个List<T>数据，现传入参数Map<K, V>,key为T中的字段，需要根据传入的map对list进行过滤，此时可以使用反射获取Class对象，再通过从Class对象中获取getter方法来获取对象的值，从而完成了过滤
+> 1. 使用场景：有一个List<T>数据，现传入参数Map<K, V>,key为T中的字段，需要根据传入的map对list进行过滤，此时可以使用反射获取Class对象，再通过从Class对象中获取getter方法来获取对象的值，从而完成了过滤
+>
+> 2. 在aop中反射修改controller中注入的service
 
 ### 7、值传递与引用传递
 
@@ -108,7 +110,7 @@ class Area{
 }
 ```
 
-### 8、对象的创建
+### 8、对象创建的方法
 
 - 使用new关键字进行创建
 - 通过反射获取class对象，使用newInstance方法创建对象
@@ -167,6 +169,22 @@ public class Test implements Cloneable, Serializable {
 1. 为什么HashMap的长度是2的整数幂？
 
    因为HashMap是把key的hash值与length-1进行&运算，将结果作为数组下标，当hashmap的长度为2的整数幂时，length-1（每一位都是1）与hash值进行&运算时，结果必定属于区间：[0,length-1]，hash值的每一位数都能与length-1进行运算，能均匀减少碰撞
+
+2. tableSizeFor方法
+
+   ```
+   static final int tableSizeFor(int cap) {
+       int n = cap - 1;
+       n |= n >>> 1;
+       n |= n >>> 2;
+       n |= n >>> 4;
+       n |= n >>> 8;
+       n |= n >>> 16;
+       return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+   }
+   ```
+
+   将size值减去1，然后进行右移运算，再和原值进行或运算，这样可以保证将cap-1的首位数
 
 ![](./pictures/map的put执行流程.png)
 
@@ -359,13 +377,13 @@ G1收集器是一个面向服务器配置的垃圾收集器
    ```
    在echo Using CATALINA_BASE:   "%CATALINA_BASE%"的上面一行加下面代码：
    
-   set JAVA_OPTS=-Xms128m -Xmx256m -XX:PermSize=128m -XX:MaxPermSize=256m
+   set JAVA_OPTS=-Xms1024m -Xmx4096m -XX:PermSize=128m -XX:MaxPermSize=256m
    
    加入后位置如下：
    
    rem ----- Execute The Requested Command ---------------------------------------
    
-   set JAVA_OPTS=-Xms128m -Xmx256m -XX:PermSize=128m -XX:MaxPermSize=256m
+   set JAVA_OPTS=-Xms1024m -Xmx4096m -XX:PermSize=128m -XX:MaxPermSize=256m
    
    echo Using CATALINA_BASE:   "%CATALINA_BASE%"
    参数说明：

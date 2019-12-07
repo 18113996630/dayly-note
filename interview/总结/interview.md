@@ -63,25 +63,12 @@ public class Test {
 		Area area = new Area();
 		area.setName("a");
 		m1(area);
-		//m1
 		System.out.println(area.getName());
 		m2(area);
-		//NullPointException
 		System.out.println(area.getName());
 		m3(area);
-		//m3
 		System.out.println(area.getName());
 	}
-
-
-	private static void changeValue(String s){
-		s = "被改变了";
-	}
-
-	private static void changeValue(Area s){
-		s.setName("123");
-	}
-
 
 	private static void m1(Area area) {
 		area.setName("m1");
@@ -479,7 +466,7 @@ G1收集器是一个面向服务器配置的垃圾收集器
 
 > 操作的内存，本身速度快
 >
-> 使用单线程，避免了上下文切换
+> 存取过程使用单线程，避免了上下文切换
 
 #### 8. Redis的持久化策略
 

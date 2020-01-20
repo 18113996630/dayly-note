@@ -175,7 +175,9 @@ public class Test implements Cloneable, Serializable {
 
 ![](./pictures/map的put执行流程.png)
 
+### 11、 ThreadLocal
 
+​	ThreadLocal可以解决多线程情况下相同变量的访问冲突问题，比如为每个请求线程分配一个uuid，采用了空间换时间的策略。ThreadLocal内部采用一个**ThreadLocalMap**进行数据的保存，key为当前线程，value为待保存的值。TheadLocalMap内部声明了一个**Entry**，Entry继承了**WeakReference**
 
 
 ## 并发、线程 ##
@@ -389,10 +391,24 @@ G1收集器是一个面向服务器配置的垃圾收集器
 
 ## spring
 
+> https://blog.csdn.net/a745233700/article/details/80959716
+
 1. **什么是IOC、DI**
     IOC全称为：inversion of control，即控制反转，控制反转是对于程序中对象的创建来说的，传统对象的创建方法是直接在代码中进行new，由代码来控制创建对象的逻辑；而使用spring框架，则是让程序在运行的时候根据不同的情况来创建对象，由spring来管理对象的声明周期。
+    
+    DI全称为：Injection inversion，依赖注入，di是ioc的实现过程，di可以根据对象的字段、getset、构造器来进行对象的创建。
 
-  DI全称为：Injection inversion，依赖注入，di是ioc的实现过程，di可以根据对象的字段、getset、构造器来进行对象的创建。
+2. **BeanPostProcessor**
+
+   **使用场景：**根据指定情况修改controller的实现类
+
+   如果想对Bean进行一些自定义的处理，那么可以让Bean实现了BeanPostProcessor接口，BeanPostProcessor接口提供了两个供开发者自定义的方法：postProcessBeforeInitialization、postProcessAfterInitialization。
+
+   - postProcessBeforeInitialization：该方法主要针对spring在bean初始化时调用初始化方法前进行自定义处理。
+
+   - postProcessAfterInitialization：该方法主要针对spring在bean初始化时调用初始化方法后进行自定义处理。
+
+3. **Spring Bean的生命周期**
 
 ## Springcloud
 

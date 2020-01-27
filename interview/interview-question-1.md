@@ -46,7 +46,7 @@
 
               ```
               生成字节码方法：
-              byte[] proxyClassFile = ProxyGenerator.generateProxyClass(              proxyName, interfaces, accessFlags);
+              byte[] proxyClassFile = ProxyGenerator.generateProxyClass(proxyName, interfaces, accessFlags);
               可以将字节码写入到磁盘中，反编译看生成的文件是什么
               ```
 
@@ -82,7 +82,7 @@
 
 4. feign的启用，调用方式及底层实现原理
 
-   > feign封装了http请求，在启动类中使用@EnableFeignClients注解开启fegin功能，一般使用interface定义feign client，在interface上使用@feignClient(name="xxx")，表名该interface为一个feign client。
+   > feign封装了http请求，在启动类中使用@EnableFeignClients注解开启fegin功能，一般使用interface定义feign client，在interface上使用@feignClient(name="xxx")，表明该interface为一个feign client。
    >
    > 系统在启动的时候会基于interface生成代理类，在代理类中使用http请求调用目标对象的接口
 

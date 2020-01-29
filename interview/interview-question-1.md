@@ -48,7 +48,10 @@
               生成字节码方法：
               byte[] proxyClassFile = ProxyGenerator.generateProxyClass(proxyName, interfaces, accessFlags);
               可以将字节码写入到磁盘中，反编译看生成的文件是什么
+              反编译方法：使用jad.exe
+              命令：jad -s java class文件名字
               ```
+
 
         2. 根据class获取构造器，生成实例
 

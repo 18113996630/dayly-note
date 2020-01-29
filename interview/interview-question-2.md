@@ -67,7 +67,7 @@ class org.hr.testDemo.extend.multi.Entry$Inner
 9. ##### 线程池 
 
    > 线程池是一个池化技术，线程是一个创建代价昂贵的资源，所以需要将线程进行统一管理，提高线程资源的利用效率、系统的反应速度(获取线程的速度)
-   >
+   > 博客地址： https://blog.csdn.net/hlp4207/article/details/99630377
    > 核心参数：
    >
    > 1. 核心线程数量

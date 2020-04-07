@@ -49,7 +49,7 @@ city population
 ----目标：---
 ------------
 province	  total
-其它			400
+其它			 400
 四川省		    500
 贵州省		    300
 ```
@@ -366,7 +366,7 @@ name	price	rank
 ```
 
 ```sql
-# 使用自连接实现rank（要进行排名，意思就是根据某个字段找出自身更大的元素的数量）
+# 使用子查询实现rank（要进行排名，意思就是根据某个字段找出自身更大的元素的数量）
 select
 	(select count(1) from products p1 where p1.price>p.price)+1 as rank,
 	name,

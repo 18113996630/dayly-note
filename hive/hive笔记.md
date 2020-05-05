@@ -87,11 +87,129 @@ create temporary function parse_area as 'com.hrong.hive.udf.CalculateArea';
   >
   >Hive操作正在执行的模式。在`strict` 模式下，不允许运行某些有风险的查询。比如不能进行全表扫描、使用Order By 必须进行limit操作
 
+## 数据类型
+
+- tinyint		1byte有符号整数
+- smalint		2byte有符号整数
+- int			4byte有符号整数
+- bigint		8byte有符号整数
+- boolean		是否
+- float		单精度浮点数
+- double		双精度浮点数
+- string		字符串
+- timestamp	整数浮点数或者字符串
+- binary		字节数组
+- struct	   struct <street:string,city:string>   {"street":"mozijie","city":"cd"}
+- map		 map<string,float>					{"s1":110.4,"s2":50.1}
+- array		array<string>						["emp1","emp2","emp3"]
+
+## 表操作
+
+- 创建外部分区表
+
+  ```sql
+  create external TABLE emp(id int,name string) partitioned by(month string) row format delimited fields terminated by ' ' stored as textfile;
+  ```
+
+- 修改表
+
+  - 修改表名
+
+    ```sql
+    ALTER TABLE emp rename to [employee];
+    ```
+
+  - 新增分区并指定数据位置
+
+    ```sql
+    ALTER TABLE emp add partition(month='9') location '/data/hive/emp/month=9/';
+    ```
+
+  - 删除分区：	ALTER TABLE emp drop partition(month='9');如果是外部表，使用msck repair TABLE empty;可以恢复分区信息
+
+  - 修改分区表指定分区的数据来源
+
+    ```sql
+    ALTER TABLE emp partition(month='10') set location '/data/hive/emp/month=10/emp10';
+    ```
+
+  - 修改列信息
+
+    ```sql
+    ALTER TABLE emp CHANGE COLUMN name mingzi STRING;
+    ```
+
+  - 增加列信息
+
+    ```sql
+    ALTER TABLE temp add COLUMNS (xing STRING COMMENT 'gender',salary double);
+    ```
+
+  - 修改存储格式
+
+    ```sql
+    ALTER TABLE employee partition(month='12') set FILEFORMAT sequencefile;
+    ```
+
+- 删除表
+
+  drop TABLE fjs;	如果表名不存在不报错
+  如果是外部表，则只会删除表的元信息，hdfs上的数据不会删除
+
+- 快速复制一个分区表
+
+  ```sql
+  原分区表：emp
+  1. create TABLE [employee]  like emp;
+  2. dfs -cp /user/hive/warehouse/school.db/emp/* /user/hive/warehouse/school.db/employee/;
+  3. msck repair TABLE [employee] ;
+  4. show partitions [employee] ;
+  ```
+
+## 数据操作
+
+- 将查询的数据插入表格
+
+  ```sql
+  <inesrt overwrite == inesrt into>
+  	
+  insert overwrite table employee partition(month=9) select id,name from emp where month=9;
+  
+  exception： FAILED: SemanticException [Error 10044]: Line 1:23 Cannot insert into target table because column number/types are different '10': Table insclause-0 has 2 columns, but query has 3 columns.
+  	
+  note：select 后面不能加上分区列，因为hive在插入的时候会默认插入已经指定的month字段，所以在查询的时候需要将分区字段去掉
+  	
+  根据内容进行动态分区：insert overwrite table emp partition(age) select id,name,age from emp_n;  
+  会根据最后一个字段(age)进行产生分区信息，即使列名不一样也不影响
+  	
+  将指定分区的数据加载入目标表
+  insert overwrite table stu partition(classid=1,teacherid) select id,name ,teacherid from stu_tmp where classid=1;    
+  如果分区信息指定了的话在select的映射区则不能出现该字段。静态分区的信息应该在动态分区的前面。
+  ```
+
+- 将查询的数据保存到本地
+
+  ```sql
+  1、hive> insert [overwrite] local directory '/usr/data/hive' select * from mydb.stu;   -- hive的保存方式<缺点：列值之间无分割符>
+  	
+  2、$> hive -e "select * from mydb.stu" > a.txt
+  	
+  3、$> hive -f "/usr/data/hive/hql/save.hql' > a.txt
+  ```
+
+- 使用SQL向表中插入数据
+
+  ```sql
+  insert into page_ads select 'page-one', array(1,2,3);
+  ```
+
+  
+
 ## Hive查询相关
 
 > https://cwiki.apache.org/confluence/display/Hive/LanguageManual
 
-### SELECT部分
+### 1. SELECT部分
 
 #### 1、Multi-Group-By Inserts
 
@@ -162,6 +280,19 @@ create temporary function parse_area as 'com.hrong.hive.udf.CalculateArea';
   > ```
 
 > 1. Hive 0.13.0之后可以使用隐式join，即：`SELECT * FROM table1 t1, table2 t2 WHERE t1.id = t2.id`，默认为`inner join`
+>
+> 2. 多个表`join`时，如果用作连接的列为同一列，则最终只会转化为一个`map-reduce`作业
+>
+> 3. 多个表`join`时，除了最后一个join的表之外的表会缓存到buffer中，所以，将数据量最大的表放在最后可以有效减少内存的使用量
+>
+> 4. 对于表的筛选条件，有两种写法
+>
+>    1. select * from a left join b on a.id=b.a_id where a.id=**
+>    2. select * from a left join b on a.id=b.a_id and a.id=**
+>
+>    如果是分区表，则可能出现这种情况：
+>    
+>    ​	存在a中的id在b表中找不到对应的a_id，left join仍会将数据查询出来，那么通过a.id进行筛选则会筛选出b中分区列为空的数据
 
 ```sql
 select * from class;
@@ -219,5 +350,34 @@ t1.id	t1.name	t2.id	t2.name	t2.class_id
 2		two		2		s2			2
 3		three	NULL	NULL		NULL
 NULL	NULL	5		s5			4
+```
+
+### 2. lateral
+
+> https://cwiki.apache.org/confluence/display/Hive/LanguageManual+LateralView
+>
+> ```sql
+> lateralView: LATERAL VIEW udtf(expression) tableAlias AS columnAlias (``','` `columnAlias)*
+> fromClause: FROM baseTable (lateralView)*
+> ```
+>
+> lateral view与用户定义的表生成功能（例如explode（））结合使用。如内置表生成函数中所述，UDTF为每个输入行生成零个或多个输出行。侧视图首先将UDTF应用于基本表的每一行，然后将结果输出行与输入行连接起来以形成具有所提供表别名的虚拟表。
+>
+> 可以使用多个lateral view，按照先后顺序加载，靠后的lateral可以使用靠前的lateral
+
+```sql
+page_ads.page	page_ads.ids
+page-one	[1,2,3]
+page-two	[4,2,5]
+
+select id, count(1) as cnt from page_ads lateral view explode(ids) tmp as id group by id order by cnt desc;
+
+-- 查询结果
+id		cnt
+2		2
+5		1
+4		1
+3		1
+1		1
 ```
 

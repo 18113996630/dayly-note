@@ -570,3 +570,34 @@ seq	name
 select '缺失' as flag from seqtbl having count(1) <> max(seq);
 ```
 
+#### 2. 查询中位数
+
+```sql
+name	income				   
+劳伦斯	15000
+史密斯	20000
+哈德逊	15000
+怀特	20000
+斯科特	10000
+桑普森	400000
+肯特	10000
+贝克	10000
+迈克	30000
+阿诺德	20000
+
+
+SELECT AVG(DISTINCT income)
+  FROM (SELECT T1.income
+          FROM Graduates T1, Graduates T2
+      GROUP BY T1.income
+               /* S1的条件 */
+        HAVING SUM(CASE WHEN T2.income >= T1.income THEN 1 ELSE 0 END) 
+                   >= COUNT(*) / 2
+               /* S2的条件 */
+           AND SUM(CASE WHEN T2.income <= T1.income THEN 1 ELSE 0 END) 
+                   >= COUNT(*) / 2 ) TMP;
+```
+
+#### 3. count的使用
+
+> count(*)可以用于null值，而count(列名)则会过滤掉列值为null的列

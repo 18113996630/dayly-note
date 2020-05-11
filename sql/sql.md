@@ -713,7 +713,74 @@ select dpt from students GROUP BY dpt having count(1) = count(sbmt_date);
   -- 第二个条件可以筛选掉店铺销售数量小于items数量的表，留下的就是销售数量和items数量相同的店铺
   ```
 
-  
+#### 练习题
+
+1. 存在缺失的编号则返回：`缺失编号`，否则返回:`不缺失编号`
+
+   ```sql
+   seq	name
+   1	迪克
+   2	安
+   3	莱露
+   5	卡
+   6	玛丽
+   8	本
+   
+   select '不存在缺失的编号' as result from seqtbl HAVING count(seq) = max(seq)
+   union all
+   select '存在缺失的编号' as result from seqtbl HAVING count(seq) <> max(seq);
+   ```
+
+2. 查找全体学生都在9月份提交了报告的学院
+
+   ```sql
+   student_id	 dpt		sbmt_date
+   100			理学院		2005-10-10
+   101			理学院		2005-09-22
+   102			文学院		
+   103			文学院		2005-09-10
+   200			文学院		2005-09-22
+   201			工学院	
+   202			经济学院	2005-09-25
+   
+   
+   SELECT
+   	dpt 
+   FROM
+   	students 
+   GROUP BY
+   	dpt 
+   HAVING
+   	count( * ) = sum( CASE WHEN substr( sbmt_date, 6, 2 ) = '09' THEN 1 ELSE 0 END );
+   ```
+
+3. 展示店铺已上架items中的商品数量及未上架商品的数量
+
+   ```sql
+   select * from items t1 LEFT JOIN shopitems t2 ON t1.item = t2.item;
+   
+   item		shop		item(1)
+   啤酒		东京		啤酒
+   纸尿裤		东京		纸尿裤
+   自行车		东京		自行车
+   啤酒		仙台		啤酒
+   纸尿裤		仙台		纸尿裤
+   自行车		仙台		自行车
+   纸尿裤		大阪		纸尿裤
+   自行车		大阪		自行车
+   
+   SELECT
+   	t2.shop,
+   	count( 1 ) AS my_item_cnt,
+   	( SELECT count( 1 ) FROM items ) - count( 1 ) AS diff_cnt 
+   FROM
+   	items t1
+   	LEFT JOIN shopitems t2 ON t1.item = t2.item 
+   GROUP BY
+   	t2.shop;
+   ```
+
+   
 
 
 

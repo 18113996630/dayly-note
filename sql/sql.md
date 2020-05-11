@@ -600,4 +600,148 @@ SELECT AVG(DISTINCT income)
 
 #### 3. count的使用
 
-> count(*)可以用于null值，而count(列名)则会过滤掉列值为null的列
+> count(*)可以用于null值，而count(列名)则会过滤掉列值为null的行
+
+**查询全部提交了报告的学院**
+
+```sql
+select * from students;
+-- 没有提交报告的学生sbmt_date列为null
+student_id	  dpt		sbmt_date
+100			理学院		2005-10-10
+101			理学院		2005-09-22
+102			文学院		
+103			文学院		2005-09-10
+200			文学院		2005-09-22
+201			工学院	
+202			经济学院	2005-09-25
+
+------------
+----目标：---
+------------
+
+dpt
+理学院
+经济学院
+```
+
+```sql
+select dpt from students GROUP BY dpt having count(1) = count(sbmt_date);
+-- 根据dpt进行分组，因为count(列名)会过滤掉列值为null的行，所以当count(1)=count(sbmt_date)时，该学院的所有学生都已提交报告
+```
+
+#### 4. 购物篮分析
+
+- **找出销售itmes表中所有商品的店铺**
+
+  ```sql
+  shop
+  东京
+  仙台select * from items;
+  
+  item
+  啤酒
+  纸尿裤
+  自行车
+  
+  select * from shopitems;
+  
+  shop		item
+  东京		啤酒
+  东京		纸尿裤
+  东京		自行车
+  仙台		啤酒
+  仙台		窗帘
+  仙台		纸尿裤
+  仙台		自行车
+  大阪		电视
+  大阪		纸尿裤
+  大阪		自行车
+  ------------
+  ----目标：---
+  ------------
+  shop
+  东京
+  仙台
+  ```
+
+  ```sql
+  select 
+  	t1.shop 
+  from shopitems t1, items t2 where t1.item=t2.item 
+  GROUP BY t1.shop 
+  having count(1) = (select count(1) from items);
+  
+  -- 因为要找出销售items中所有商品的店铺，所以可以考虑先将两张表进行inner join（对于items中的商品，如果该店铺有在销售则可以join上），再筛选每个group下的数据量，join之后每个组的数据量如果与items中的数据量相等，则表示所有itmes中的商品，该店铺都在销售
+  ```
+
+- **找出只销售itmes表中商品的店铺（精准匹配）**
+
+  ```sql
+  -- 表数据如上例题
+  
+  ------------
+  ----目标：---
+  ------------
+  shop
+  东京
+  ```
+
+  ```sql
+  select 
+  	t1.shop
+  from shopitems t1 left join items t2 on t1.item=t2.item 
+  GROUP BY t1.shop 
+  having count(t1.item) = (select count(1) from items)
+  AND count(t2.item) = (select count(1) from items);
+  
+  -- 要精准匹配，首先应该找出每个店铺销售的所有商品，即使用left join进行表连接，找到itmes中有无对应的商品
+  -- left join之后根据shop进行group by，使用having进行精准筛选
+  -- select * from shopitems t1 left join items t2 on t1.item=t2.item 数据
+  shop		item		item(1)
+  东京		啤酒		啤酒
+  东京		纸尿裤		纸尿裤
+  东京		自行车		自行车
+  仙台		啤酒		啤酒
+  仙台		窗帘		null
+  仙台		纸尿裤		纸尿裤
+  仙台		自行车		自行车
+  大阪		电视		null
+  大阪		纸尿裤		纸尿裤
+  大阪		自行车		自行车
+  -- 第一个条件可以去掉店铺销售商品数量大于items数量的表
+  -- 第二个条件可以筛选掉店铺销售数量小于items数量的表，留下的就是销售数量和items数量相同的店铺
+  ```
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -54,6 +54,14 @@
    /usr/local/hvie/bin/hive
    ```
 
+7. hive远程连接
+
+   ```shell
+   /usr/local/hive/bin/hiveserver2 &
+   
+   客户端使用jdbc方式连接，端口为10000，无特殊配置下可以不用输账号密码
+   ```
+
 ## Hive常见配置
 
 > https://cwiki.apache.org/confluence/display/Hive/Configuration+Properties
@@ -379,5 +387,61 @@ id		cnt
 4		1
 3		1
 1		1
+```
+
+## 常见查询
+
+### 两次分组
+
+```sql
+set hive.exec.dynamic.partition.mode=nonstrict;
+set hive.exec.mode.local.auto=true;
+
+drop table group_twice;
+create external table group_twice
+(
+    id      int,
+    name    string,
+    cost    int,
+    income int
+) partitioned by (dt string) stored as sequencefile;
+
+
+insert into group_twice partition (dt)
+VALUES (1, '张三', 10, 100, '20200528'),
+       (2, '李四', 5, 50, '20200528'),
+       (3, '张三', 15, 85, '20200528'),
+       (4, '李四', 8, 42, '20200529'),
+       (5, '张三', 10, 75, '20200529'),
+       (6, '李四', 20, 22, '20200529'),
+       (7, '张三', 50, 125, '20200530'),
+       (8, '李四', 12, 10, '20200530');
+id  name       cost 	income 		dt       
+1	张三    	10		100		20200528
+2	李四    	5		50		20200528
+3	张三    	15		85		20200528
+4	李四    	8		42		20200529
+5	张三    	10		75		20200529
+6	李四    	20		22		20200529
+7	张三    	50		125		20200530
+8	李四    	12		10		20200530
+
+
+select name, dt, sum(cost) as total_cost,
+       max(sum(income)) over (partition by name order by sum(income) desc) as most_income
+from group_twice
+where dt between '20200528' and '20200530'
+group by dt, name
+order by name, dt;
+
+name       dt 	total_cost 	   most_income       
+张三	20200528	25	       185
+张三	20200529	10	       185
+张三	20200530	50	       185
+李四	20200528	5	       64
+李四	20200529	28	       64
+李四	20200530	12	       64
+
+
 ```
 
